@@ -122,18 +122,18 @@ Examples from this skill:
 
 For a new site, add files in this order:
 
-1. `references/<site>-workflows.md`
-2. `scripts/<site>-cdp-common.sh`
+1. `references/sites/<site>/workflows.md`
+2. `scripts/sites/<site>/common.sh`
 3. one or more workflow scripts
 4. index links in `SKILL.md` and `references/core/index.md`
 
 Recommended shape:
 
 ```text
-references/<site>-workflows.md
-scripts/<site>-cdp-common.sh
-scripts/<site>-search.sh
-scripts/<site>-open-post.sh
+references/sites/<site>/workflows.md
+scripts/sites/<site>/common.sh
+scripts/sites/<site>/search.sh
+scripts/sites/<site>/open-post.sh
 ```
 
 The helper script should own:
@@ -288,7 +288,7 @@ After the repository version is stable:
 Typical sync command:
 
 ```bash
-rsync -a /home/bruce/Github/chrome-cdp-skill/skills/chrome-cdp/ /home/bruce/.agents/skills/chrome-cdp/
+rsync -a "$REPO_ROOT/skills/chrome-cdp/" /home/bruce/.agents/skills/chrome-cdp/
 ```
 
 ## Minimal acceptance checklist
@@ -309,7 +309,7 @@ When adding a new site, follow this sequence exactly:
 1. define scope and output schema
 2. inspect a live page with `list`, `snap`, and tiny `eval`
 3. determine URL pattern and readiness signal
-4. write `<site>-cdp-common.sh`
+4. write `scripts/sites/<site>/common.sh`
 5. write one workflow script at a time
 6. validate serially on real tabs
 7. add reference docs and index links

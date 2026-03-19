@@ -2,9 +2,9 @@
 
 This file describes the repeatable `tgb.cn` / Taoguba workflows bundled with
 the skill. Input is either a time-windowed list task or a single Taoguba post
-URL. Output is structured JSON from the helper scripts under `../scripts/`.
-Public entrypoints are `taoguba-jinghua.sh`, `taoguba-following.sh`, and
-`taoguba-open-post.sh`.
+URL. Output is structured JSON from the helper scripts under
+`../../scripts/sites/taoguba/`. Public entrypoints are `jinghua.sh`,
+`following.sh`, and `open-post.sh`.
 
 ## Scope
 

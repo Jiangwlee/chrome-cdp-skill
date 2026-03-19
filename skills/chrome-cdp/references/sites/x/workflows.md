@@ -2,8 +2,8 @@
 
 This file describes the repeatable `x.com` workflows bundled with the skill.
 Input is either a search query or a single post URL. Output is structured JSON
-from the helper scripts under `../scripts/`. Public entrypoints are
-`x-search.sh` and `x-open-post.sh`.
+from the helper scripts under `../../scripts/sites/x/`. Public entrypoints are
+`search.sh` and `open-post.sh`.
 
 ## Scope
 

@@ -1,6 +1,6 @@
 ---
 name: chrome-cdp
-description: Use Chrome CDP as a reusable browser core for site-specific SOP workflows, with explicit approval before interacting with a live local browser session
+description: Use Chrome CDP to inspect, navigate, extract, and run site-specific SOP workflows in a local Chrome-family browser. Use when the user needs a workflow on a live Chrome tab, a bundled site workflow script should run, or a page already open in Chrome should be inspected or debugged.
 ---
 
 # Chrome CDP
@@ -18,7 +18,7 @@ Treat this skill as two layers:
 - `sites`
   Repeatable workflows for specific websites such as `reddit.com`, `tgb.cn`, and `x.com`.
 
-The repository is being refactored toward a `core + sites + tests` layout. Until that migration is complete, some files still live in the legacy flat `scripts/` and `references/` directories.
+This repository uses a `core + sites + tests` layout.
 
 ## Quick Start
 

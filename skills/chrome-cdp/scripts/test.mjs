@@ -318,6 +318,31 @@ const tests = [
     },
   },
   {
+    name: 'site.taoguba.following.smoke',
+    scope: 'site',
+    site: 'taoguba',
+    workflow: 'following',
+    level: 'smoke',
+    setupHint: 'Open a usable Taoguba tab in Chrome before running Taoguba smoke tests.',
+    failHint: 'Check scripts/sites/taoguba/following.sh and references/sites/taoguba/workflows.md.',
+    async run() {
+      const script = resolve(SITE_SCRIPTS_DIR, 'taoguba', 'following.sh');
+      const { result, value } = await runJsonCommand('bash', [script, String(TAOGUBA_HOURS), String(TAOGUBA_LIMIT)], 60000);
+      assert(Array.isArray(value), 'taoguba following should return a JSON array');
+      if (value.length > 0) {
+        assert(typeof value[0]?.actor === 'string', 'taoguba following result should include an actor field');
+        assert(typeof value[0]?.update_time === 'string', 'taoguba following result should include an update_time field');
+      }
+      return {
+        status: 'pass',
+        command: result.command,
+        commands: [result.command],
+        stdout_excerpt: result.stdout.slice(0, 400),
+        data: { result_count: value.length },
+      };
+    },
+  },
+  {
     name: 'site.x.search.smoke',
     scope: 'site',
     site: 'x',
@@ -402,11 +427,13 @@ function printHumanSummary(summary) {
     }
   }
   console.log('');
-  console.log(`Summary: ${summary.pass_count} passed, ${summary.fail_count} failed, ${summary.skip_count} skipped`);
+  const allSkipped = summary.pass_count === 0 && summary.fail_count === 0 && summary.skip_count > 0;
+  console.log(`Summary: ${summary.pass_count} passed, ${summary.fail_count} failed, ${summary.skip_count} skipped${allSkipped ? ' (all skipped — check browser/setup prerequisites)' : ''}`);
 }
 
 function computeOk(results) {
   if (results.some((result) => result.status === 'fail')) return false;
+  if (results.every((result) => result.status === 'skip')) return false;
   return results.some((result) => result.status === 'pass');
 }
 
