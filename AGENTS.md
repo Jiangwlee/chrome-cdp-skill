@@ -54,6 +54,7 @@ Process documents for recurring workflows:
 
 - [docs/sop/brainstorming.md](docs/sop/brainstorming.md)
   需求头脑风暴：先主动调查（读代码、查页面），再提聚焦业务的问题，最后写设计摘要确认后实现。
+  **执行头脑风暴前，必须先加载 `brainstorming` skill（`pi --skill brainstorming` 或 `@brainstorming`）。**
 - [docs/sop/chrome-cdp-skill-dev.md](docs/sop/chrome-cdp-skill-dev.md)
   Chrome CDP Skill 开发：文件创建顺序、DOM 优先原则、canvas 页面处理、就绪等待模式、输出 schema 要求。
 - [docs/sop/pi-agent-dev.md](docs/sop/pi-agent-dev.md)
