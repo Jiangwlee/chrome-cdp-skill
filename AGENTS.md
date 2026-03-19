@@ -121,8 +121,10 @@ chrome-cdp-skill/
     link-reader.md        ← summarize a single X or Reddit URL
     web-researcher.md     ← multi-round research on a topic
     stock-analyst.md      ← Taoguba market analysis
+    wps-assistant.md      ← answer questions from WPS 365 documents
     bin/
       pi-read-link        ← CLI wrapper for link-reader
       pi-research         ← CLI wrapper for web-researcher
       pi-stock-report     ← CLI wrapper for stock-analyst
+      pi-wps              ← CLI wrapper for wps-assistant
 ```

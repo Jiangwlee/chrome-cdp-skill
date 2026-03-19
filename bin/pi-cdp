@@ -12,8 +12,8 @@ SKILL_DST="$HOME/.agents/skills/chrome-cdp"
 AGENTS_DST="$HOME/.pi/agent/agents"
 BIN_DST="$HOME/.local/bin"
 
-AGENT_NAMES=(link-reader web-researcher stock-analyst)
-WRAPPER_NAMES=(pi-read-link pi-research pi-stock-report)
+AGENT_NAMES=(link-reader web-researcher stock-analyst wps-assistant)
+WRAPPER_NAMES=(pi-read-link pi-research pi-stock-report pi-wps)
 BIN_TOOLS=(pi-watch)
 
 # ---------------------------------------------------------------------------
@@ -152,9 +152,10 @@ All installs use symlinks. Changes to the repo take effect immediately
 without re-running install.
 
 Agents installed:
-  link-reader      pi-read-link <url>     Summarize one X or Reddit post
-  web-researcher   pi-research <topic>    10-round research report
-  stock-analyst    pi-stock-report        Taoguba market analysis
+  link-reader      pi-read-link <url>       Summarize one X or Reddit post
+  web-researcher   pi-research <topic>      10-round research report
+  stock-analyst    pi-stock-report          Taoguba market analysis
+  wps-assistant    pi-wps <question>        Answer questions from WPS 365 docs
 
 Prerequisites:
   - Chrome running with remote debugging enabled
