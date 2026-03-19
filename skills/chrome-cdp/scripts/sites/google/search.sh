@@ -5,7 +5,10 @@
 # Public interface: google-search.sh <query> [limit] [target_prefix].
 #
 # The script reuses or falls back to any available Chrome tab.
-# It navigates directly to https://www.google.com/search?q=<query>&num=20.
+# It fetches up to 3 pages (start=0/10/20, num=10 each) and merges results
+# until the requested limit is reached or all pages are exhausted.
+# Fetching multiple pages is necessary because Google inserts news carousels,
+# featured snippets, and other non-organic blocks that reduce organic yield.
 # It uses cdp nav (waits for Page.loadEventFired) to avoid a race condition
 # where wait conditions match the old DOM before navigation completes.
 # It waits for the organic results section (#rso) to appear before extracting.
@@ -42,18 +45,13 @@ TARGET="${3:-}"
 TARGET="$(google_find_target "$TARGET")"
 [[ -n "$TARGET" ]] || { printf 'no usable browser tab found\n' >&2; exit 1; }
 
-SEARCH_URL="https://www.google.com/search?q=$(url_encode "$QUERY")&num=20"
-cdp nav "$TARGET" "$SEARCH_URL"
-wait_for_google_selector "$TARGET" '#rso'
+ENCODED_QUERY="$(url_encode "$QUERY")"
 
-read -r -d '' EXPR <<'EOF' || true
+read -r -d '' EXTRACT_EXPR <<'EOF' || true
 (() => {
-  const limit = LIMIT_VALUE;
   const results = [];
 
   for (const container of document.querySelectorAll('#rso .MjjYud')) {
-    if (results.length >= limit) break;
-
     // Title: must have an h3
     const h3 = container.querySelector('h3');
     if (!h3) continue;
@@ -102,6 +100,26 @@ read -r -d '' EXPR <<'EOF' || true
   return results;
 })()
 EOF
-EXPR="${EXPR/LIMIT_VALUE/${LIMIT}}"
 
-cdp_eval "$TARGET" "$EXPR"
+RESULTS='[]'
+SEEN_URLS=''
+
+for START in 0 10 20; do
+  CURRENT_COUNT=$(printf '%s' "$RESULTS" | jq 'length')
+  (( CURRENT_COUNT >= LIMIT )) && break
+
+  PAGE_URL="https://www.google.com/search?q=${ENCODED_QUERY}&num=10&start=${START}"
+  cdp nav "$TARGET" "$PAGE_URL" >/dev/null
+  wait_for_google_selector "$TARGET" '#rso'
+
+  PAGE_RESULTS="$(cdp_eval "$TARGET" "$EXTRACT_EXPR")"
+
+  # Merge: append page results, deduplicate by url, trim to limit
+  RESULTS=$(jq -n \
+    --argjson acc "$RESULTS" \
+    --argjson page "$PAGE_RESULTS" \
+    --argjson limit "$LIMIT" \
+    '($acc + $page) | unique_by(.url) | .[:$limit]')
+done
+
+printf '%s\n' "$RESULTS"
