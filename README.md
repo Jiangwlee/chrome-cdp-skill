@@ -1,5 +1,7 @@
 # chrome-cdp-skill
 
+> English README | [中文文档](README.zh.md)
+
 `chrome-cdp-skill` is a fork-based SOP skill platform built on top of Chrome CDP.
 
 Instead of only exposing a low-level browser control tool, this repository packages a reusable `chrome-cdp` skill, a growing set of site-specific SOP workflows, and ready-to-use pi agents that compose those workflows into end-user tasks. The current first-party workflows target:

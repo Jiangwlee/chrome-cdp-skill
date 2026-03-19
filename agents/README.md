@@ -1,5 +1,7 @@
 # Agents
 
+> English README | [中文文档](README.zh.md)
+
 This directory contains pi agent definitions that compose the `chrome-cdp` skill into end-user workflows.
 
 ## What Is an Agent
