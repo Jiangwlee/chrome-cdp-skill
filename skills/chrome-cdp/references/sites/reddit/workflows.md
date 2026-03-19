@@ -2,8 +2,8 @@
 
 This file describes the repeatable `reddit.com` workflows bundled with the
 skill. Input is either a search query or a single Reddit post URL. Output is
-structured JSON from the helper scripts under `../scripts/`. Public
-entrypoints are `reddit-search.sh` and `reddit-open-post.sh`.
+structured JSON from the helper scripts under `../../scripts/sites/reddit/`.
+Public entrypoints are `search.sh` and `open-post.sh`.
 
 ## Scope
 
@@ -14,11 +14,11 @@ entrypoints are `reddit-search.sh` and `reddit-open-post.sh`.
 
 ## Script entrypoints
 
-- [../scripts/reddit-search.sh](../scripts/reddit-search.sh)
+- [../../scripts/sites/reddit/search.sh](../../scripts/sites/reddit/search.sh)
   Inputs: search query, optional result limit, optional target prefix.
   Output: JSON array of up to 10 results with `title`, `subreddit`,
   `time_hint`, `summary`, and `url`.
-- [../scripts/reddit-open-post.sh](../scripts/reddit-open-post.sh)
+- [../../scripts/sites/reddit/open-post.sh](../../scripts/sites/reddit/open-post.sh)
   Inputs: one Reddit post URL, optional comment limit, optional target prefix.
   Output: JSON object with `title`, `subreddit`, `author`, `time`, `text`,
   `url`, and `comments`.

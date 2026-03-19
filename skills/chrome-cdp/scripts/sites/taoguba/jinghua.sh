@@ -10,14 +10,14 @@
 # year for month-day timestamps shown on the page.
 # The output fields are title, author, post_time, reply_time, stats, and url.
 # The default window is 24 hours and the default limit is 20.
-# The script depends on jq and the sibling taoguba-cdp-common.sh helpers.
+# The script depends on jq and the sibling common.sh helpers.
 # Errors are printed to stderr and the script exits non-zero.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=./taoguba-cdp-common.sh
-source "${SCRIPT_DIR}/taoguba-cdp-common.sh"
+# shellcheck source=./common.sh
+source "${SCRIPT_DIR}/common.sh"
 
 require_cmd jq
 

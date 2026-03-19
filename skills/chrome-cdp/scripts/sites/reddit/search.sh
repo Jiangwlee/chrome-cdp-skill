@@ -11,14 +11,14 @@
 # The output fields are title, subreddit, time_hint, summary, and url.
 # The default limit is 10 and the hard cap is also 10.
 # Summary text is the visible result-card summary, not the full post body.
-# The script depends on jq and the sibling reddit-cdp-common.sh helpers.
+# The script depends on jq and the sibling common.sh helpers.
 # Errors are printed to stderr and the script exits non-zero.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=./reddit-cdp-common.sh
-source "${SCRIPT_DIR}/reddit-cdp-common.sh"
+# shellcheck source=./common.sh
+source "${SCRIPT_DIR}/common.sh"
 
 require_cmd jq
 

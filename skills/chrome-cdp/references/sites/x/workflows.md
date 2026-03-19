@@ -14,11 +14,11 @@ from the helper scripts under `../scripts/`. Public entrypoints are
 
 ## Script entrypoints
 
-- [../scripts/x-search.sh](../scripts/x-search.sh)
+- [../../scripts/sites/x/search.sh](../../scripts/sites/x/search.sh)
   Inputs: search query, optional result limit, optional target prefix.
   Output: JSON array of up to 10 search results with `author`, `handle`,
   `time_hint`, `summary`, and `url`.
-- [../scripts/x-open-post.sh](../scripts/x-open-post.sh)
+- [../../scripts/sites/x/open-post.sh](../../scripts/sites/x/open-post.sh)
   Inputs: one `x.com/<user>/status/<id>` URL, optional target prefix.
   Output: JSON object with `author`, `handle`, `time`, `text`, and `url`.
 

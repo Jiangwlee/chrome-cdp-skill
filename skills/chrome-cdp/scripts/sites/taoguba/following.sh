@@ -9,14 +9,14 @@
 # Time filtering uses the full timestamp exposed in each card.
 # The output fields are actor, update_time, action, text, post_title, and url.
 # The default window is 12 hours and the default limit is 30.
-# The script depends on jq and the sibling taoguba-cdp-common.sh helpers.
+# The script depends on jq and the sibling common.sh helpers.
 # Errors are printed to stderr and the script exits non-zero.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=./taoguba-cdp-common.sh
-source "${SCRIPT_DIR}/taoguba-cdp-common.sh"
+# shellcheck source=./common.sh
+source "${SCRIPT_DIR}/common.sh"
 
 require_cmd jq
 

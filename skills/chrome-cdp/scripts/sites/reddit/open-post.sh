@@ -9,14 +9,14 @@
 # The main post text is parsed from visible page content around the post title.
 # The comments array follows DOM order and does not expand more replies.
 # The default comment limit is 10.
-# The script depends on jq and the sibling reddit-cdp-common.sh helpers.
+# The script depends on jq and the sibling common.sh helpers.
 # Errors are printed to stderr and the script exits non-zero.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=./reddit-cdp-common.sh
-source "${SCRIPT_DIR}/reddit-cdp-common.sh"
+# shellcheck source=./common.sh
+source "${SCRIPT_DIR}/common.sh"
 
 require_cmd jq
 

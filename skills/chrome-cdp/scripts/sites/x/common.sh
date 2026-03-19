@@ -5,7 +5,7 @@
 # Public interface: require_cmd, x_find_target, cdp_list_raw, cdp_nav,
 # cdp_eval, json_string, url_encode, and wait_for_x_article.
 #
-# The helpers keep x-search.sh and x-open-post.sh deterministic and small.
+# The helpers keep search.sh and open-post.sh deterministic and small.
 # They prefer the repository-local cdp.mjs entrypoint in the same skill.
 # They select an existing usable X tab rather than opening a new one.
 # They rely on jq for robust JSON parsing and URI encoding.
@@ -17,7 +17,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CDP_SCRIPT="${SCRIPT_DIR}/cdp.mjs"
+CDP_SCRIPT="${SCRIPT_DIR}/../../cdp.mjs"
 
 require_cmd() {
   local cmd="$1"

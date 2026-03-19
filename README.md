@@ -1,62 +1,129 @@
-# chrome-cdp
+# chrome-cdp-skill
 
-Let your AI agent see and interact with your **live Chrome session** — the tabs you already have open, your logged-in accounts, your current page state. No browser automation framework, no separate browser instance, no re-login.
+`chrome-cdp-skill` is a fork-based SOP skill platform built on top of Chrome CDP.
 
-Works out of the box with any Chrome installation. One toggle to enable, nothing else to install.
+Instead of only exposing a low-level browser control tool, this repository packages a reusable `chrome-cdp` skill plus a growing set of site-specific SOP workflows. The current first-party workflows target:
 
-## Why this matters
+- `reddit.com`
+- `tgb.cn` / Taoguba
+- `x.com`
 
-Most browser automation tools launch a fresh, isolated browser. This one connects to the Chrome you're already running, so your agent can:
+The long-term direction is to keep the browser integration layer stable and expand support to more websites by adding new workflow modules, references, and tests.
 
-- Read pages you're logged into (Gmail, GitHub, internal tools, ...)
-- Interact with tabs you're actively working in
-- See the actual state of a page mid-workflow, not a clean reload
+## Project Model
+
+This repository is organized around a `core + sites` model:
+
+- `core`
+  Shared Chrome CDP primitives, browser connection behavior, and general SOP development guidance.
+- `sites`
+  Website-specific workflow scripts and references built on top of the core browser layer.
+- `tests`
+  A test harness for smoke and workflow validation so agents can periodically run checks and repair broken skills.
+
+The current codebase still contains some legacy flat layout from the original upstream project. The target layout is:
+
+```text
+skills/chrome-cdp/
+  SKILL.md
+  scripts/
+    cdp.mjs
+    sites/
+    test.mjs
+  references/
+    core/
+    sites/
+  tests/
+    core/
+    sites/
+```
+
+## What This Repository Includes
+
+- A Chrome CDP CLI for deterministic access to a live Chrome-family browser session.
+- Site-specific SOP scripts for repeatable extraction and navigation workflows.
+- Workflow references that document how each supported site should be handled.
+- Repository rules for maintaining a personal fork while staying close to upstream.
+
+## Current Supported Workflows
+
+Core browser access currently routes through `skills/chrome-cdp/scripts/cdp.mjs`.
+
+Bundled workflow scripts currently include:
+
+- `skills/chrome-cdp/scripts/sites/reddit/search.sh`
+- `skills/chrome-cdp/scripts/sites/reddit/open-post.sh`
+- `skills/chrome-cdp/scripts/sites/taoguba/jinghua.sh`
+- `skills/chrome-cdp/scripts/sites/taoguba/following.sh`
+- `skills/chrome-cdp/scripts/sites/taoguba/open-post.sh`
+- `skills/chrome-cdp/scripts/sites/x/search.sh`
+- `skills/chrome-cdp/scripts/sites/x/open-post.sh`
+
+These now live in per-site subdirectories under `skills/chrome-cdp/scripts/sites/`.
 
 ## Installation
 
 ### As a pi skill
 
 ```bash
-pi install git:github.com/pasky/chrome-cdp-skill@v1.0.1
+pi install git:github.com/Jiangwlee/chrome-cdp-skill
 ```
 
-### For other agents (Amp, Claude Code, Cursor, etc.)
+### For other agents
 
-Clone or copy the `skills/chrome-cdp/` directory wherever your agent loads skills or context from. The only runtime dependency is **Node.js 22+** — no npm install needed.
+Clone or copy the `skills/chrome-cdp/` directory wherever your agent loads skills or context from. The only runtime dependency is Node.js 22+.
 
 ### Enable remote debugging in Chrome
 
-Navigate to `chrome://inspect/#remote-debugging` and toggle the switch. That's it.
+Navigate to `chrome://inspect/#remote-debugging` and enable remote debugging.
 
-The CLI auto-detects Chrome, Chromium, Brave, Edge, and Vivaldi on macOS, Linux, and Windows. If your browser stores `DevToolsActivePort` in a non-standard location, set the `CDP_PORT_FILE` environment variable to the full path.
+The CLI auto-detects Chrome, Chromium, Brave, Edge, and Vivaldi on macOS, Linux, and Windows. If your browser stores `DevToolsActivePort` in a non-standard location, set `CDP_PORT_FILE` to the full path.
 
-## Usage
+## Direction For New Site Support
+
+Each new supported website should add all of the following:
+
+- site scripts
+- site references
+- site tests
+- `scripts/test.mjs` integration
+
+New site support is not considered complete unless it can be exercised by the unified test runner.
+
+## Test Runner
+
+Use the unified runner under `skills/chrome-cdp/scripts/test.mjs`.
 
 ```bash
-scripts/cdp.mjs list                              # list open tabs
-scripts/cdp.mjs shot   <target>                   # screenshot → runtime dir
-scripts/cdp.mjs snap   <target>                   # accessibility tree (compact, semantic)
-scripts/cdp.mjs html   <target> [".selector"]     # full HTML or scoped to CSS selector
-scripts/cdp.mjs eval   <target> "expression"      # evaluate JS in page context
-scripts/cdp.mjs nav    <target> https://...       # navigate and wait for load
-scripts/cdp.mjs net    <target>                   # network resource timing
-scripts/cdp.mjs click  <target> "selector"        # click element by CSS selector
-scripts/cdp.mjs clickxy <target> <x> <y>          # click at CSS pixel coordinates
-scripts/cdp.mjs type   <target> "text"            # type at focused element (works in cross-origin iframes)
-scripts/cdp.mjs loadall <target> "selector"       # click "load more" until gone
-scripts/cdp.mjs evalraw <target> <method> [json]  # raw CDP command passthrough
-scripts/cdp.mjs open   [url]                      # open new tab (triggers Allow prompt)
-scripts/cdp.mjs stop   [target]                   # stop daemon(s)
+node skills/chrome-cdp/scripts/test.mjs list
+node skills/chrome-cdp/scripts/test.mjs core
+node skills/chrome-cdp/scripts/test.mjs site reddit
+node skills/chrome-cdp/scripts/test.mjs site taoguba
+node skills/chrome-cdp/scripts/test.mjs site x
+node skills/chrome-cdp/scripts/test.mjs all
 ```
 
-`<target>` is a unique prefix of the targetId shown by `list`.
+Optional flags:
 
-## Why not chrome-devtools-mcp?
+- `--json`
+- `--fail-fast`
 
-[chrome-devtools-mcp](https://github.com/ChromeDevTools/chrome-devtools-mcp) reconnects on every command, so Chrome's "Allow debugging" modal can re-appear repeatedly and target enumeration times out with many tabs open. `chrome-cdp` holds one persistent daemon per tab — the modal fires once, and it handles 100+ tabs reliably.
+Optional environment overrides:
 
-## How it works
+- `CDP_TEST_REDDIT_QUERY`
+- `CDP_TEST_X_QUERY`
+- `CDP_TEST_TAOGUBA_HOURS`
+- `CDP_TEST_TAOGUBA_LIMIT`
 
-Connects directly to Chrome's remote debugging WebSocket — no Puppeteer, no intermediary. On first access to a tab, a lightweight background daemon is spawned that holds the session open. Chrome's "Allow debugging" modal appears once per tab; subsequent commands reuse the daemon silently. Daemons auto-exit after 20 minutes of inactivity.
+## Why This Fork Exists
 
-This approach is also why it handles 100+ open tabs reliably, where tools built on Puppeteer often time out during target enumeration.
+The upstream project is a strong base for live Chrome CDP access. This fork extends it into a maintained SOP skill workspace with:
+
+- opinionated website workflows
+- structured references for agents
+- a testable maintenance loop for detecting broken site automations
+
+## Near-Term Roadmap
+
+- Keep `scripts/cdp.mjs` stable and refactor site scripts and references into per-site subdirectories.
+- Add smoke tests for `core`, `reddit`, `taoguba`, and `x`.

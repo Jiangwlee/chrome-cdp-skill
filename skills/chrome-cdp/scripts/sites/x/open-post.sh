@@ -10,14 +10,14 @@
 # The extraction reflects the currently visible language version on the page.
 # It does not click Show original or Show translation automatically.
 # It returns only the main post article and ignores replies or thread expansion.
-# The script depends on jq and the sibling x-cdp-common.sh helpers.
+# The script depends on jq and the sibling common.sh helpers.
 # Errors are printed to stderr and the script exits non-zero.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=./x-cdp-common.sh
-source "${SCRIPT_DIR}/x-cdp-common.sh"
+# shellcheck source=./common.sh
+source "${SCRIPT_DIR}/common.sh"
 
 require_cmd jq
 

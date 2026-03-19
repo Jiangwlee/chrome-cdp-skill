@@ -8,14 +8,14 @@
 # It navigates to the target URL and waits for the post title text to appear.
 # The extraction reads the visible post body before the reply-floor section.
 # It returns only the main post content and ignores comments/floors.
-# The script depends on jq and the sibling taoguba-cdp-common.sh helpers.
+# The script depends on jq and the sibling common.sh helpers.
 # Errors are printed to stderr and the script exits non-zero.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=./taoguba-cdp-common.sh
-source "${SCRIPT_DIR}/taoguba-cdp-common.sh"
+# shellcheck source=./common.sh
+source "${SCRIPT_DIR}/common.sh"
 
 require_cmd jq
 

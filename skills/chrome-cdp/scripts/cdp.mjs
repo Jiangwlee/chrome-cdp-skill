@@ -20,7 +20,7 @@
 // Navigation only allows http/https URLs.
 // Screenshot coordinate output is reported in CSS pixel terms for CDP input.
 // Errors are returned as plain text so they can be surfaced by skill wrappers.
-// See ../references/cli-reference.md and ../references/troubleshooting.md.
+// See ../references/core/cli-reference.md and ../references/core/troubleshooting.md.
 
 import { readFileSync, writeFileSync, unlinkSync, existsSync, mkdirSync } from 'fs';
 import { homedir } from 'os';

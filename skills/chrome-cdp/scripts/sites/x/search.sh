@@ -11,14 +11,14 @@
 # The output fields are author, handle, time_hint, summary, and url.
 # The default limit is 10 and the hard cap is also 10.
 # Summary text is the visible page summary, not the full post text.
-# The script depends on jq and the sibling x-cdp-common.sh helpers.
+# The script depends on jq and the sibling common.sh helpers.
 # Errors are printed to stderr and the script exits non-zero.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=./x-cdp-common.sh
-source "${SCRIPT_DIR}/x-cdp-common.sh"
+# shellcheck source=./common.sh
+source "${SCRIPT_DIR}/common.sh"
 
 require_cmd jq
 

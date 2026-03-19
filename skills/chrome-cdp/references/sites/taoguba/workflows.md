@@ -15,15 +15,15 @@ Public entrypoints are `taoguba-jinghua.sh`, `taoguba-following.sh`, and
 
 ## Script entrypoints
 
-- [../scripts/taoguba-jinghua.sh](../scripts/taoguba-jinghua.sh)
+- [../../scripts/sites/taoguba/jinghua.sh](../../scripts/sites/taoguba/jinghua.sh)
   Inputs: optional hour window, optional result limit, optional target prefix.
   Output: JSON array of recent `jinghua` posts with title, author, post time,
   reply time, stats, and URL.
-- [../scripts/taoguba-following.sh](../scripts/taoguba-following.sh)
+- [../../scripts/sites/taoguba/following.sh](../../scripts/sites/taoguba/following.sh)
   Inputs: optional hour window, optional result limit, optional target prefix.
   Output: JSON array of recent followed-content updates with actor, update
   time, action, text, source post title, and URL.
-- [../scripts/taoguba-open-post.sh](../scripts/taoguba-open-post.sh)
+- [../../scripts/sites/taoguba/open-post.sh](../../scripts/sites/taoguba/open-post.sh)
   Inputs: one Taoguba post URL, optional target prefix.
   Output: JSON object with title, author, publish time, stats, text, and URL.
 

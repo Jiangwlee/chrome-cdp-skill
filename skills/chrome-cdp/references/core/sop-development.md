@@ -125,7 +125,7 @@ For a new site, add files in this order:
 1. `references/<site>-workflows.md`
 2. `scripts/<site>-cdp-common.sh`
 3. one or more workflow scripts
-4. index links in `SKILL.md` and `references/index.md`
+4. index links in `SKILL.md` and `references/core/index.md`
 
 Recommended shape:
 

@@ -42,4 +42,4 @@ the issue.
 
 ## Script entrypoint
 
-- Implementation: [../scripts/cdp.mjs](../scripts/cdp.mjs)
+- Implementation: [../../scripts/cdp.mjs](../../scripts/cdp.mjs)

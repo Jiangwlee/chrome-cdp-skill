@@ -61,4 +61,4 @@ is the CLI command list below and the target-prefix workflow.
 
 ## Script entrypoint
 
-- Implementation: [../scripts/cdp.mjs](../scripts/cdp.mjs)
+- Implementation: [../../scripts/cdp.mjs](../../scripts/cdp.mjs)
