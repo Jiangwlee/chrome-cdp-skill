@@ -42,6 +42,8 @@ Load core references for shared browser behavior:
 
 Load site references for website-specific workflows:
 
+- [references/sites/kdocs/workflows.md](references/sites/kdocs/workflows.md)
+  `365.kdocs.cn` / WPS 365 document search, open, find-in-doc, AI QA, and close workflows.
 - [references/sites/reddit/workflows.md](references/sites/reddit/workflows.md)
   `reddit.com` search and post-plus-comments workflows.
 - [references/sites/taoguba/workflows.md](references/sites/taoguba/workflows.md)
@@ -81,6 +83,19 @@ This file stays in place as the stable forked core entrypoint while site workflo
   Extract followed-content updates from the last 12 hours by default.
 - `scripts/sites/taoguba/open-post.sh`
   Open one Taoguba post and extract the main post body.
+
+### WPS 365 (365.kdocs.cn)
+
+- `scripts/sites/kdocs/search.sh`
+  Search WPS 365 documents; returns snippets and version ranking.
+- `scripts/sites/kdocs/open-doc.sh`
+  Open a document by file key; returns outline and first-page text.
+- `scripts/sites/kdocs/find-in-doc.sh`
+  Search for a keyword in the open document; returns match count and context.
+- `scripts/sites/kdocs/ask-ai.sh`
+  Ask WPS AI Docs Chat on the main page; returns answer text and referenced docs.
+- `scripts/sites/kdocs/close-doc.sh`
+  Close the document tab, keeping the main 365.kdocs.cn/latest tab alive.
 
 ### X
 

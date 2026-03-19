@@ -36,7 +36,7 @@ function usage() {
     '  node skills/chrome-cdp/scripts/test.mjs list',
     '  node skills/chrome-cdp/scripts/test.mjs all [--json] [--fail-fast]',
     '  node skills/chrome-cdp/scripts/test.mjs core [--json] [--fail-fast]',
-    '  node skills/chrome-cdp/scripts/test.mjs site <reddit|taoguba|x> [--json] [--fail-fast]',
+    '  node skills/chrome-cdp/scripts/test.mjs site <kdocs|reddit|taoguba|x> [--json] [--fail-fast]',
   ].join('\n'));
   process.exit(1);
 }
@@ -186,6 +186,8 @@ async function runCase(test) {
   }
 }
 
+const KDOCS_QUERY = process.env.CDP_TEST_KDOCS_QUERY || '天基遥感';
+const KDOCS_AI_QUERY = process.env.CDP_TEST_KDOCS_AI_QUERY || '天基遥感 经费';
 const REDDIT_QUERY = process.env.CDP_TEST_REDDIT_QUERY || 'openai';
 const X_QUERY = process.env.CDP_TEST_X_QUERY || 'openai';
 const TAOGUBA_HOURS = envInt('CDP_TEST_TAOGUBA_HOURS', 168);
@@ -339,6 +341,75 @@ const tests = [
         commands: [result.command],
         stdout_excerpt: result.stdout.slice(0, 400),
         data: { result_count: value.length },
+      };
+    },
+  },
+  {
+    name: 'site.kdocs.search.smoke',
+    scope: 'site',
+    site: 'kdocs',
+    workflow: 'search',
+    level: 'smoke',
+    setupHint: 'Open a 365.kdocs.cn/latest tab in Chrome before running kdocs smoke tests.',
+    failHint: 'Check scripts/sites/kdocs/search.sh and references/sites/kdocs/workflows.md.',
+    async run() {
+      const script = resolve(SITE_SCRIPTS_DIR, 'kdocs', 'search.sh');
+      const { result, value } = await runJsonCommand('bash', [script, KDOCS_QUERY, '3'], 60000);
+      assert(Array.isArray(value), 'kdocs search should return a JSON array');
+      assert(value.length > 0, 'kdocs search should return at least one result');
+      assert(
+        typeof value[0]?.file_key === 'string' && value[0].file_key.startsWith('file_'),
+        'kdocs search result should include a file_key starting with "file_"'
+      );
+      assert(
+        typeof value[0]?.title === 'string' && value[0].title.length > 0,
+        'kdocs search result should include a non-empty title'
+      );
+      assert(
+        typeof value[0]?.is_latest === 'boolean',
+        'kdocs search result should include an is_latest boolean'
+      );
+      return {
+        status: 'pass',
+        command: result.command,
+        stdout_excerpt: result.stdout.slice(0, 400),
+        data: { result_count: value.length },
+      };
+    },
+  },
+  {
+    name: 'site.kdocs.ask_ai.smoke',
+    scope: 'site',
+    site: 'kdocs',
+    workflow: 'ask_ai',
+    level: 'smoke',
+    setupHint: 'Open a 365.kdocs.cn/latest tab with Docs Chat enabled before running kdocs AI QA smoke tests.',
+    failHint: 'Check scripts/sites/kdocs/ask-ai.sh and references/sites/kdocs/workflows.md.',
+    async run() {
+      const script = resolve(SITE_SCRIPTS_DIR, 'kdocs', 'ask-ai.sh');
+      const { result, value } = await runJsonCommand('bash', [script, KDOCS_AI_QUERY], 90000);
+      assert(value && typeof value === 'object' && !Array.isArray(value), 'kdocs ask-ai should return a JSON object');
+      assert(
+        typeof value.question === 'string' && value.question.length > 0,
+        'kdocs ask-ai result should include the original question'
+      );
+      assert(
+        typeof value.answer === 'string' && value.answer.length > 0,
+        'kdocs ask-ai result should include a non-empty answer'
+      );
+      assert(
+        value.scope === 'all_parsed_files',
+        'kdocs ask-ai result should report the current Docs Chat scope'
+      );
+      assert(
+        Array.isArray(value.references),
+        'kdocs ask-ai result should include a references array'
+      );
+      return {
+        status: 'pass',
+        command: result.command,
+        stdout_excerpt: result.stdout.slice(0, 400),
+        data: { reference_count: value.references.length },
       };
     },
   },

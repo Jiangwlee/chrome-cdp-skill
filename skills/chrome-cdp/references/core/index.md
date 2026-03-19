@@ -17,6 +17,8 @@ specific reference file to load and the `scripts/cdp.mjs` command to run.
   Command semantics, workflow guidance, and examples for the CLI implemented in [../../scripts/cdp.mjs](../../scripts/cdp.mjs).
 - [troubleshooting.md](troubleshooting.md)
   Failure modes for remote debugging, stale browser websocket paths, daemon startup, and tab targeting.
+- [../sites/kdocs/workflows.md](../sites/kdocs/workflows.md)
+  Stable SOPs and script entrypoints for `365.kdocs.cn` document search, open, find, AI QA, and close.
 - [../sites/x/workflows.md](../sites/x/workflows.md)
   Stable SOPs and script entrypoints for `x.com` search and single-post extraction.
 - [../sites/reddit/workflows.md](../sites/reddit/workflows.md)
@@ -38,6 +40,12 @@ specific reference file to load and the `scripts/cdp.mjs` command to run.
 
 - Primary script: [../../scripts/cdp.mjs](../../scripts/cdp.mjs)
 - Workflow scripts:
+  [../../scripts/sites/kdocs/search.sh](../../scripts/sites/kdocs/search.sh),
+  [../../scripts/sites/kdocs/open-doc.sh](../../scripts/sites/kdocs/open-doc.sh),
+  [../../scripts/sites/kdocs/find-in-doc.sh](../../scripts/sites/kdocs/find-in-doc.sh),
+  [../../scripts/sites/kdocs/ask-ai.sh](../../scripts/sites/kdocs/ask-ai.sh),
+  [../../scripts/sites/kdocs/close-doc.sh](../../scripts/sites/kdocs/close-doc.sh),
+  [../../scripts/sites/kdocs/common.sh](../../scripts/sites/kdocs/common.sh),
   [../../scripts/sites/x/search.sh](../../scripts/sites/x/search.sh),
   [../../scripts/sites/x/open-post.sh](../../scripts/sites/x/open-post.sh),
   [../../scripts/sites/x/common.sh](../../scripts/sites/x/common.sh),
