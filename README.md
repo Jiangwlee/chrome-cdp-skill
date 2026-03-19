@@ -2,40 +2,52 @@
 
 `chrome-cdp-skill` is a fork-based SOP skill platform built on top of Chrome CDP.
 
-Instead of only exposing a low-level browser control tool, this repository packages a reusable `chrome-cdp` skill plus a growing set of site-specific SOP workflows. The current first-party workflows target:
+Instead of only exposing a low-level browser control tool, this repository packages a reusable `chrome-cdp` skill, a growing set of site-specific SOP workflows, and ready-to-use pi agents that compose those workflows into end-user tasks. The current first-party workflows target:
 
 - `reddit.com`
 - `tgb.cn` / Taoguba
 - `x.com`
 
-The long-term direction is to keep the browser integration layer stable and expand support to more websites by adding new workflow modules, references, and tests.
+The long-term direction is to keep the browser integration layer stable, expand support to more websites, and ship agents that let users invoke complex multi-step workflows with a single command.
 
 ## Project Model
 
-This repository is organized around a `core + sites` model:
+This repository is organized around three layers:
 
-- `core`
-  Shared Chrome CDP primitives, browser connection behavior, and general SOP development guidance.
-- `sites`
-  Website-specific workflow scripts and references built on top of the core browser layer.
-- `tests`
-  A test harness for smoke and workflow validation so agents can periodically run checks and repair broken skills.
+- `skill`
+  The `chrome-cdp` skill: shared CDP primitives, site-specific SOP scripts, workflow references, and a test harness. This is the browser layer that all agents depend on.
+- `agents`
+  Pi agent definitions that compose the skill into end-user workflows. Each agent is a system prompt that drives `pi` to execute one focused task using the skill's scripts.
+- `bin`
+  The `pi-cdp` project CLI. The single entry point for installing and removing the skill and agents on a local machine.
 
-The current codebase still contains some legacy flat layout from the original upstream project. The target layout is:
+## Target Layout
 
 ```text
-skills/chrome-cdp/
-  SKILL.md
-  scripts/
-    cdp.mjs
-    sites/
-    test.mjs
-  references/
-    core/
-    sites/
-  tests/
-    core/
-    sites/
+chrome-cdp-skill/
+  bin/
+    pi-cdp                ← project CLI (install / remove / help)
+  skills/
+    chrome-cdp/
+      SKILL.md
+      scripts/
+        cdp.mjs
+        sites/
+        test.mjs
+      references/
+        core/
+        sites/
+      tests/
+        core/
+        sites/
+  agents/
+    link-reader.md        ← summarize a single X or Reddit URL
+    web-researcher.md     ← multi-round research on a topic
+    stock-analyst.md      ← Taoguba market analysis
+    bin/
+      pi-read-link        ← CLI wrapper
+      pi-research         ← CLI wrapper
+      pi-stock-report     ← CLI wrapper
 ```
 
 ## What This Repository Includes
@@ -43,7 +55,8 @@ skills/chrome-cdp/
 - A Chrome CDP CLI for deterministic access to a live Chrome-family browser session.
 - Site-specific SOP scripts for repeatable extraction and navigation workflows.
 - Workflow references that document how each supported site should be handled.
-- Repository rules for maintaining a personal fork while staying close to upstream.
+- Pi agent definitions that drive end-user workflows on top of the skill.
+- A project CLI (`bin/pi-cdp`) for installing and removing the skill and agents.
 
 ## Current Supported Workflows
 
@@ -63,7 +76,20 @@ These now live in per-site subdirectories under `skills/chrome-cdp/scripts/sites
 
 ## Installation
 
-### As a pi skill
+### Full install (skill + agents + wrappers)
+
+```bash
+git clone git@github.com:Jiangwlee/chrome-cdp-skill.git
+cd chrome-cdp-skill
+./bin/pi-cdp install
+```
+
+This installs:
+- the `chrome-cdp` skill to `~/.agents/skills/chrome-cdp/`
+- agent definitions to `~/.pi/agent/agents/`
+- CLI wrappers to `~/.local/bin/`
+
+### Skill only (as a pi skill via pi package manager)
 
 ```bash
 pi install git:github.com/Jiangwlee/chrome-cdp-skill
@@ -127,3 +153,5 @@ The upstream project is a strong base for live Chrome CDP access. This fork exte
 
 - Keep `scripts/cdp.mjs` stable and refactor site scripts and references into per-site subdirectories.
 - Add smoke tests for `core`, `reddit`, `taoguba`, and `x`.
+- Ship the three first-party agents: `link-reader`, `web-researcher`, `stock-analyst`.
+- Ship `bin/pi-cdp` with `install`, `remove`, and `help` subcommands.

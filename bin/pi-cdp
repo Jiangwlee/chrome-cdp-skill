@@ -1,0 +1,180 @@
+#!/usr/bin/env bash
+# pi-cdp — project CLI for chrome-cdp-skill
+# Commands: install, remove, help
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+SKILL_SRC="$REPO_ROOT/skills/chrome-cdp"
+AGENTS_SRC="$REPO_ROOT/agents"
+
+SKILL_DST="$HOME/.agents/skills/chrome-cdp"
+AGENTS_DST="$HOME/.pi/agent/agents"
+BIN_DST="$HOME/.local/bin"
+
+AGENT_NAMES=(link-reader web-researcher stock-analyst)
+WRAPPER_NAMES=(pi-read-link pi-research pi-stock-report)
+BIN_TOOLS=(pi-watch)
+
+# ---------------------------------------------------------------------------
+# helpers
+# ---------------------------------------------------------------------------
+
+info()  { printf '  \033[32m+\033[0m %s\n' "$*"; }
+warn()  { printf '  \033[33m!\033[0m %s\n' "$*"; }
+error() { printf '  \033[31mx\033[0m %s\n' "$*" >&2; }
+
+make_symlink() {
+  local src="$1" dst="$2" label="$3"
+  if [[ -L "$dst" ]]; then
+    local current
+    current="$(readlink "$dst")"
+    if [[ "$current" == "$src" ]]; then
+      return 0  # already correct, silent
+    else
+      warn "$label: $dst already links to $current — skipping (use --force to override)"
+      return 0
+    fi
+  fi
+  if [[ -e "$dst" ]]; then
+    warn "$label: $dst exists and is not a symlink — skipping"
+    return 0
+  fi
+  ln -s "$src" "$dst"
+  info "$label: $dst → $src"
+}
+
+remove_symlink() {
+  local src="$1" dst="$2" label="$3"
+  if [[ -L "$dst" ]]; then
+    local current
+    current="$(readlink "$dst")"
+    if [[ "$current" == "$src" ]]; then
+      rm "$dst"
+      info "$label: removed $dst"
+    else
+      warn "$label: $dst points to $current, not this repo — skipping"
+    fi
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# commands
+# ---------------------------------------------------------------------------
+
+cmd_install() {
+  local force=false
+  for arg in "$@"; do [[ "$arg" == "--force" ]] && force=true; done
+
+  echo "Installing chrome-cdp-skill from $REPO_ROOT"
+  echo ""
+
+  # Directories
+  mkdir -p "$HOME/.agents/skills"
+  mkdir -p "$AGENTS_DST"
+  mkdir -p "$BIN_DST"
+
+  # Skill
+  if [[ "$force" == true && -L "$SKILL_DST" ]]; then rm "$SKILL_DST"; fi
+  make_symlink "$SKILL_SRC" "$SKILL_DST" "skill"
+
+  # Agent definitions
+  echo ""
+  for name in "${AGENT_NAMES[@]}"; do
+    local src="$AGENTS_SRC/$name.md"
+    local dst="$AGENTS_DST/$name.md"
+    if [[ "$force" == true && -L "$dst" ]]; then rm "$dst"; fi
+    make_symlink "$src" "$dst" "agent:$name"
+  done
+
+  # CLI wrappers
+  echo ""
+  for name in "${WRAPPER_NAMES[@]}"; do
+    local src="$AGENTS_SRC/bin/$name"
+    local dst="$BIN_DST/$name"
+    if [[ ! -x "$src" ]]; then chmod +x "$src"; fi
+    if [[ "$force" == true && -L "$dst" ]]; then rm "$dst"; fi
+    make_symlink "$src" "$dst" "wrapper:$name"
+  done
+
+  # Project bin tools
+  for name in "${BIN_TOOLS[@]}"; do
+    local src="$REPO_ROOT/bin/$name"
+    local dst="$BIN_DST/$name"
+    if [[ ! -x "$src" ]]; then chmod +x "$src"; fi
+    if [[ "$force" == true && -L "$dst" ]]; then rm "$dst"; fi
+    make_symlink "$src" "$dst" "tool:$name"
+  done
+
+  echo ""
+  echo "Done. Make sure $BIN_DST is in your PATH."
+}
+
+cmd_remove() {
+  echo "Removing chrome-cdp-skill links"
+  echo ""
+
+  remove_symlink "$SKILL_SRC" "$SKILL_DST" "skill"
+
+  echo ""
+  for name in "${AGENT_NAMES[@]}"; do
+    remove_symlink "$AGENTS_SRC/$name.md" "$AGENTS_DST/$name.md" "agent:$name"
+  done
+
+  echo ""
+  for name in "${WRAPPER_NAMES[@]}"; do
+    remove_symlink "$AGENTS_SRC/bin/$name" "$BIN_DST/$name" "wrapper:$name"
+  done
+
+  for name in "${BIN_TOOLS[@]}"; do
+    remove_symlink "$REPO_ROOT/bin/$name" "$BIN_DST/$name" "tool:$name"
+  done
+
+  echo ""
+  echo "Done."
+}
+
+cmd_help() {
+  cat <<'EOF'
+pi-cdp — chrome-cdp-skill project CLI
+
+Usage:
+  pi-cdp install [--force]   Install skill, agents, and CLI wrappers
+  pi-cdp remove              Remove installed symlinks owned by this repo
+  pi-cdp help                Show this help
+
+Install targets:
+  Skill      ~/.agents/skills/chrome-cdp/    → skills/chrome-cdp/
+  Agents     ~/.pi/agent/agents/<name>.md    → agents/<name>.md
+  Wrappers   ~/.local/bin/pi-<name>          → agents/bin/pi-<name>
+
+All installs use symlinks. Changes to the repo take effect immediately
+without re-running install.
+
+Agents installed:
+  link-reader      pi-read-link <url>     Summarize one X or Reddit post
+  web-researcher   pi-research <topic>    10-round research report
+  stock-analyst    pi-stock-report        Taoguba market analysis
+
+Prerequisites:
+  - Chrome running with remote debugging enabled
+  - pi in PATH
+  - Node.js 22+
+EOF
+}
+
+# ---------------------------------------------------------------------------
+# dispatch
+# ---------------------------------------------------------------------------
+
+case "${1:-help}" in
+  install) cmd_install "${@:2}" ;;
+  remove)  cmd_remove ;;
+  help|--help|-h) cmd_help ;;
+  *)
+    error "unknown command: $1"
+    echo ""
+    cmd_help
+    exit 1
+    ;;
+esac

@@ -10,10 +10,11 @@ This repository is maintained as a personal fork-based workspace and developed a
 
 ## Project Positioning
 
-- Keep this repository positioned as a `core + sites + tests` platform.
-- `core` means shared Chrome CDP primitives and common SOP guidance.
-- `sites` means website-specific workflows such as `reddit`, `taoguba`, and `x`.
-- `tests` means smoke and workflow validation that agents can run repeatedly to detect broken skills.
+This repository is a three-layer platform: skill, agents, and a project CLI.
+
+- `skill` — the `chrome-cdp` skill: CDP primitives, site SOP scripts, workflow references, and tests. The browser layer. All agents depend on it.
+- `agents` — pi agent definitions. Each agent is a system prompt that drives `pi` to execute one focused user-facing task using the skill's scripts.
+- `bin` — the `pi-cdp` project CLI: the single entry point for installing and removing the skill and agents on a local machine.
 
 ## Branch Strategy
 
@@ -49,6 +50,8 @@ git push --force-with-lease origin bruce/custom
 
 ## Engineering Rules
 
+### Skill layer
+
 - Prefer keeping general CDP behavior in the core layer instead of site-specific scripts.
 - When adding a new site, add all of the following in the same change:
   - site scripts
@@ -61,21 +64,53 @@ git push --force-with-lease origin bruce/custom
 - During the directory refactor, preserve working links and script entrypoints where possible until all references are updated.
 - Prefer adding smoke tests that execute real workflow scripts and validate output structure, while marking missing browser prerequisites as setup issues rather than parser regressions.
 
+### Agent layer
+
+- An agent is a system prompt. Keep it focused on one user-facing task.
+- All browser operations must go through the chrome-cdp skill's shell scripts invoked via `bash`. Do not write new browser scripts inside the agent layer.
+- If a workflow requires a new browser capability, add the script to the skill layer first, then reference it from the agent.
+- Agent `.md` files follow the pi subagent frontmatter convention: `name`, `description`, `tools`, `model`. This keeps them compatible with both direct CLI invocation and the pi subagent extension.
+- Declare the minimal tool set. Most agents only need `bash` and `read`.
+- Enforce behavioral constraints through output template structure, not instructions alone. An agent that must complete ten research rounds should require the agent to fill a numbered template before writing a conclusion.
+- When adding a new agent, add all of the following in the same change:
+  - agent definition (`agents/<name>.md`)
+  - CLI wrapper (`agents/bin/pi-<name>`)
+  - entry in `bin/pi-cdp` install/remove tables
+
+### Project CLI
+
+- `bin/pi-cdp` is the single entry point for local setup. Keep install and remove symmetric.
+- Install targets:
+  - skill → `~/.agents/skills/chrome-cdp/` (symlink)
+  - agent definitions → `~/.pi/agent/agents/<name>.md` (symlink)
+  - CLI wrappers → `~/.local/bin/pi-<name>` (symlink)
+- Prefer symlinks over copies so edits in the repo take effect immediately without re-running install.
+
 ## Target Layout
 
-The target internal layout for `skills/chrome-cdp/` is:
-
 ```text
-skills/chrome-cdp/
-  SKILL.md
-  scripts/
-    cdp.mjs
-    sites/
-    test.mjs
-  references/
-    core/
-    sites/
-  tests/
-    core/
-    sites/
+chrome-cdp-skill/
+  bin/
+    pi-cdp                ← project CLI (install / remove / help)
+  skills/
+    chrome-cdp/
+      SKILL.md
+      scripts/
+        cdp.mjs
+        sites/
+        test.mjs
+      references/
+        core/
+        sites/
+      tests/
+        core/
+        sites/
+  agents/
+    link-reader.md        ← summarize a single X or Reddit URL
+    web-researcher.md     ← multi-round research on a topic
+    stock-analyst.md      ← Taoguba market analysis
+    bin/
+      pi-read-link        ← CLI wrapper for link-reader
+      pi-research         ← CLI wrapper for web-researcher
+      pi-stock-report     ← CLI wrapper for stock-analyst
 ```

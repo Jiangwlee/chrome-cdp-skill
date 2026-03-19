@@ -1,0 +1,84 @@
+#!/usr/bin/env node
+/**
+ * pi-watch — format pi --mode json output for human-readable progress display.
+ *
+ * Tool calls (bash/read) are shown on stderr so they appear in the terminal
+ * but don't pollute captured stdout. LLM text streams to stdout.
+ *
+ * Usage:
+ *   pi --mode json ... | pi-watch
+ */
+
+import { createInterface } from "readline";
+
+const rl = createInterface({ input: process.stdin, crlfDelay: Infinity });
+
+const RESET  = "\x1b[0m";
+const DIM    = "\x1b[2m";
+const YELLOW = "\x1b[33m";
+const CYAN   = "\x1b[36m";
+const RED    = "\x1b[31m";
+const GREEN  = "\x1b[32m";
+
+let lastTextLength = 0; // track accumulated text to emit only new deltas
+
+function printTool(line) {
+  process.stderr.write(line + "\n");
+}
+
+rl.on("line", (raw) => {
+  let event;
+  try {
+    event = JSON.parse(raw);
+  } catch {
+    return;
+  }
+
+  switch (event.type) {
+    case "tool_execution_start": {
+      const { toolName, args } = event;
+      if (toolName === "bash") {
+        const cmd = (args?.command ?? "").split("\n")[0].trim();
+        printTool(`${YELLOW}$ ${cmd}${RESET}`);
+      } else if (toolName === "read") {
+        const path = args?.path ?? args?.file_path ?? "";
+        printTool(`${CYAN}read ${path}${RESET}`);
+      } else {
+        printTool(`${DIM}[${toolName}]${RESET}`);
+      }
+      break;
+    }
+
+    case "tool_execution_end": {
+      if (event.isError) {
+        printTool(`${RED}✗ tool error${RESET}`);
+      }
+      break;
+    }
+
+    case "message_update": {
+      // message.content is accumulated; emit only new characters
+      const parts = event.message?.content ?? [];
+      let fullText = "";
+      for (const part of parts) {
+        if (part.type === "text") fullText += part.text;
+      }
+      if (fullText.length > lastTextLength) {
+        process.stdout.write(fullText.slice(lastTextLength));
+        lastTextLength = fullText.length;
+      }
+      break;
+    }
+
+    case "message_end": {
+      // Reset delta tracker for next message
+      lastTextLength = 0;
+      break;
+    }
+
+    case "agent_end": {
+      process.stderr.write(`${GREEN}✓ done${RESET}\n`);
+      break;
+    }
+  }
+});

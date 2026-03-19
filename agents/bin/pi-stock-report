@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# pi-stock-report [options]
+# Pull Taoguba jinghua posts and followed-account updates, return a market analysis report.
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: pi-stock-report [options]
+
+Pull today's Taoguba jinghua posts and followed-account updates,
+read the most significant posts in full, and return a structured
+market analysis report.
+
+Options:
+  -v          Verbose: show tool calls and LLM output in real time
+  --help      Show this help
+EOF
+}
+
+VERBOSE=false
+ARGS=()
+for arg in "$@"; do
+  case "$arg" in
+    --help) usage; exit 0 ;;
+    -v)     VERBOSE=true ;;
+    *)      ARGS+=("$arg") ;;
+  esac
+done
+
+SKILL_DIR="$HOME/.agents/skills/chrome-cdp"
+AGENT_FILE="$HOME/.pi/agent/agents/stock-analyst.md"
+
+MODEL="$(awk -F': ' '/^model:/{print $2; exit}' "$AGENT_FILE")"
+PROMPT="$(awk 'BEGIN{n=0} /^---/{n++; next} n>=2{print}' "$AGENT_FILE")"
+
+DEFAULT_MSG="请开始分析，生成今日市场简报"
+
+if [[ "$VERBOSE" == true ]]; then
+  pi --no-session --mode json \
+     --skill "$SKILL_DIR" \
+     --tools bash,read \
+     --model "$MODEL" \
+     --system-prompt "$PROMPT" \
+     "${ARGS[@]:-$DEFAULT_MSG}" | pi-watch
+else
+  pi --no-session --print \
+     --skill "$SKILL_DIR" \
+     --tools bash,read \
+     --model "$MODEL" \
+     --system-prompt "$PROMPT" \
+     "${ARGS[@]:-$DEFAULT_MSG}"
+fi

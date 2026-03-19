@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# pi-research [options] <topic>
+# Research a topic across X and Reddit with a minimum of 10 rounds.
+set -euo pipefail
+
+usage() {
+  cat <<'EOF'
+Usage: pi-research [options] <topic>
+
+Research a topic across X and Reddit using a minimum of 10 iterative
+search rounds, then return a structured research report.
+
+Arguments:
+  <topic>     The research topic or question
+
+Options:
+  -v          Verbose: show tool calls and LLM output in real time
+  --help      Show this help
+EOF
+}
+
+VERBOSE=false
+ARGS=()
+for arg in "$@"; do
+  case "$arg" in
+    --help) usage; exit 0 ;;
+    -v)     VERBOSE=true ;;
+    *)      ARGS+=("$arg") ;;
+  esac
+done
+
+if [[ ${#ARGS[@]} -eq 0 ]]; then
+  usage; exit 1
+fi
+
+SKILL_DIR="$HOME/.agents/skills/chrome-cdp"
+AGENT_FILE="$HOME/.pi/agent/agents/web-researcher.md"
+
+MODEL="$(awk -F': ' '/^model:/{print $2; exit}' "$AGENT_FILE")"
+PROMPT="$(awk 'BEGIN{n=0} /^---/{n++; next} n>=2{print}' "$AGENT_FILE")"
+
+if [[ "$VERBOSE" == true ]]; then
+  pi --no-session --mode json \
+     --skill "$SKILL_DIR" \
+     --tools bash,read \
+     --model "$MODEL" \
+     --system-prompt "$PROMPT" \
+     "${ARGS[@]}" | pi-watch
+else
+  pi --no-session --print \
+     --skill "$SKILL_DIR" \
+     --tools bash,read \
+     --model "$MODEL" \
+     --system-prompt "$PROMPT" \
+     "${ARGS[@]}"
+fi
