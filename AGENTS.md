@@ -48,6 +48,17 @@ git push --force-with-lease origin bruce/custom
 - Do not force-push `main` unless explicitly requested.
 - Before any risky history rewrite, create a backup branch.
 
+## SOPs
+
+Process documents for recurring workflows:
+
+- [docs/sop/brainstorming.md](docs/sop/brainstorming.md)
+  需求头脑风暴：先主动调查（读代码、查页面），再提聚焦业务的问题，最后写设计摘要确认后实现。
+- [docs/sop/chrome-cdp-skill-dev.md](docs/sop/chrome-cdp-skill-dev.md)
+  Chrome CDP Skill 开发：文件创建顺序、DOM 优先原则、canvas 页面处理、就绪等待模式、输出 schema 要求。
+- [docs/sop/pi-agent-dev.md](docs/sop/pi-agent-dev.md)
+  Pi Agent 开发：agent 定义文件格式、system prompt 结构、输出模板约束机制、CLI wrapper 标准模板、安装注册流程、完成标准清单。
+
 ## Engineering Rules
 
 ### Skill layer
