@@ -7,30 +7,52 @@ usage() {
   cat <<'EOF'
 Usage: pi-read-link [options] <url>
 
-Read one X (x.com) or Reddit post URL and return a structured summary.
+Read one X (x.com) or Reddit post URL and return a structured summary or full text.
 
 Arguments:
   <url>       A post URL from x.com or reddit.com
 
 Options:
-  -v          Verbose: show tool calls and LLM output in real time
-  --help      Show this help
+  -v               Verbose: show tool calls and LLM output in real time
+  --format <fmt>   Output format: summary (default) or full
+  --help           Show this help
 EOF
 }
 
 VERBOSE=false
+FORMAT=summary
 ARGS=()
-for arg in "$@"; do
+i=0
+POSITIONAL_ARGS=("$@")
+while [[ $i -lt ${#POSITIONAL_ARGS[@]} ]]; do
+  arg="${POSITIONAL_ARGS[$i]}"
   case "$arg" in
     --help) usage; exit 0 ;;
     -v)     VERBOSE=true ;;
+    --format)
+      i=$((i+1))
+      FORMAT="${POSITIONAL_ARGS[$i]}"
+      ;;
+    --format=*)
+      FORMAT="${arg#--format=}"
+      ;;
     *)      ARGS+=("$arg") ;;
   esac
+  i=$((i+1))
 done
 
 if [[ ${#ARGS[@]} -eq 0 ]]; then
   usage; exit 1
 fi
+
+# Validate format
+if [[ "$FORMAT" != "summary" && "$FORMAT" != "full" ]]; then
+  echo "Error: --format must be 'summary' or 'full'" >&2
+  exit 1
+fi
+
+# Append format instruction to user query
+USER_QUERY="${ARGS[0]} [output-format: ${FORMAT}]"
 
 SKILL_DIR="$HOME/.agents/skills/chrome-cdp"
 AGENT_FILE="$HOME/.pi/agent/agents/link-reader.md"
@@ -44,12 +66,12 @@ if [[ "$VERBOSE" == true ]]; then
      --tools bash,read \
      --model "$MODEL" \
      --system-prompt "$PROMPT" \
-     "${ARGS[@]}" | pi-watch
+     "$USER_QUERY" | pi-watch
 else
   pi --no-session --print \
      --skill "$SKILL_DIR" \
      --tools bash,read \
      --model "$MODEL" \
      --system-prompt "$PROMPT" \
-     "${ARGS[@]}"
+     "$USER_QUERY"
 fi

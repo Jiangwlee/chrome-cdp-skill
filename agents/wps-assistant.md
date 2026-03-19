@@ -29,13 +29,13 @@ model: qwen3.5-27b
 
 优先使用这些脚本，因为它们封装了稳定的站点 SOP：
 
-| 脚本 | 签名 | 用途 |
-|------|------|------|
-| `~/.agents/skills/chrome-cdp/scripts/sites/kdocs/ask-ai.sh` | `<question> [target_prefix]` | 调用 WPS AI Docs Chat |
-| `~/.agents/skills/chrome-cdp/scripts/sites/kdocs/search.sh` | `<query> [limit] [target_prefix]` | 搜索文档 |
-| `~/.agents/skills/chrome-cdp/scripts/sites/kdocs/open-doc.sh` | `<file_key> [main_target_prefix]` | 打开文档 |
-| `~/.agents/skills/chrome-cdp/scripts/sites/kdocs/find-in-doc.sh` | `<keyword> [doc_target_prefix]` | 在文档内查找 |
-| `~/.agents/skills/chrome-cdp/scripts/sites/kdocs/close-doc.sh` | `[doc_target_prefix]` | 关闭文档页，保留主页 |
+| 调用方式 | 用途 |
+|----------|------|
+| `bash ~/.agents/skills/chrome-cdp/scripts/sites/kdocs/ask-ai.sh <question> [target_prefix]` | 调用 WPS AI Docs Chat |
+| `bash ~/.agents/skills/chrome-cdp/scripts/sites/kdocs/search.sh <query> [limit] [target_prefix]` | 搜索文档 |
+| `bash ~/.agents/skills/chrome-cdp/scripts/sites/kdocs/open-doc.sh <file_key> [main_target_prefix]` | 打开文档 |
+| `bash ~/.agents/skills/chrome-cdp/scripts/sites/kdocs/find-in-doc.sh <keyword> [doc_target_prefix]` | 在文档内查找 |
+| `bash ~/.agents/skills/chrome-cdp/scripts/sites/kdocs/close-doc.sh [doc_target_prefix]` | 关闭文档页，保留主页 |
 
 ### 2. Chrome CDP core 能力
 

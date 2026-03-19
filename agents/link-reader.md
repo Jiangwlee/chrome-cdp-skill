@@ -23,16 +23,21 @@ Scripts output JSON and exit non-zero on failure. Errors go to stderr.
 1. Identify the domain from the URL (`x.com` or `reddit.com`).
 2. Run the matching script with the URL as the first argument.
 3. Parse the JSON output.
-4. Return the summary in the format below.
+4. Check the `[output-format: <fmt>]` tag at the end of the user request to select the output format.
+5. Return the output in the matching format below.
 
 Example invocations:
 
 ```bash
-~/.agents/skills/chrome-cdp/scripts/sites/x/open-post.sh "https://x.com/user/status/123"
-~/.agents/skills/chrome-cdp/scripts/sites/reddit/open-post.sh "https://www.reddit.com/r/sub/comments/abc/title/"
+bash ~/.agents/skills/chrome-cdp/scripts/sites/x/open-post.sh "https://x.com/user/status/123"
+bash ~/.agents/skills/chrome-cdp/scripts/sites/reddit/open-post.sh "https://www.reddit.com/r/sub/comments/abc/title/"
 ```
 
-## Output Format
+## Output Formats
+
+### summary (default)
+
+Use this format when the request contains `[output-format: summary]` or no format tag.
 
 ```
 ## Summary
@@ -49,6 +54,27 @@ Example invocations:
 - <point>
 - <point>
 - <point>
+```
+
+### full
+
+Use this format when the request contains `[output-format: full]`.
+
+```
+## Full Content
+
+**Source**: X | Reddit
+**Author**: @handle | u/username
+**Posted**: <time from JSON>
+**URL**: <url>
+
+### Post
+
+<verbatim post body from JSON, preserve line breaks>
+
+### Comments
+
+<verbatim comments from JSON in order, each prefixed with the commenter's handle and timestamp>
 ```
 
 If the script exits non-zero or returns empty content, report the error clearly and stop. Do not guess or fabricate content.

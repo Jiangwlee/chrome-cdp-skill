@@ -19,7 +19,7 @@ MAIN_TARGET="$("$CDP" list_raw | jq -r '
 }
 
 set +e
-OUTPUT=$("$CLOSE_DOC" "$MAIN_TARGET" 2>&1)
+OUTPUT=$(bash "$CLOSE_DOC" "$MAIN_TARGET" 2>&1)
 STATUS=$?
 set -e
 

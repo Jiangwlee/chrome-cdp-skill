@@ -23,10 +23,10 @@ Scripts output JSON and exit non-zero on failure. The default result limit is 10
 Example invocations:
 
 ```bash
-~/.agents/skills/chrome-cdp/scripts/sites/x/search.sh "AI agent frameworks 2025"
-~/.agents/skills/chrome-cdp/scripts/sites/reddit/search.sh "AI agent frameworks" 5
-~/.agents/skills/chrome-cdp/scripts/sites/x/open-post.sh "https://x.com/user/status/123"
-~/.agents/skills/chrome-cdp/scripts/sites/reddit/open-post.sh "https://www.reddit.com/r/MachineLearning/comments/abc/title/"
+bash ~/.agents/skills/chrome-cdp/scripts/sites/x/search.sh "AI agent frameworks 2025"
+bash ~/.agents/skills/chrome-cdp/scripts/sites/reddit/search.sh "AI agent frameworks" 5
+bash ~/.agents/skills/chrome-cdp/scripts/sites/x/open-post.sh "https://x.com/user/status/123"
+bash ~/.agents/skills/chrome-cdp/scripts/sites/reddit/open-post.sh "https://www.reddit.com/r/MachineLearning/comments/abc/title/"
 ```
 
 ## Research Loop

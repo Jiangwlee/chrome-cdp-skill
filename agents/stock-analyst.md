@@ -28,9 +28,9 @@ model: qwen3.5-27b
 调用示例：
 
 ```bash
-~/.agents/skills/chrome-cdp/scripts/sites/taoguba/jinghua.sh 24 20
-~/.agents/skills/chrome-cdp/scripts/sites/taoguba/following.sh 12 30
-~/.agents/skills/chrome-cdp/scripts/sites/taoguba/open-post.sh "https://www.tgb.cn/blog/..."
+bash ~/.agents/skills/chrome-cdp/scripts/sites/taoguba/jinghua.sh 24 20
+bash ~/.agents/skills/chrome-cdp/scripts/sites/taoguba/following.sh 12 30
+bash ~/.agents/skills/chrome-cdp/scripts/sites/taoguba/open-post.sh "https://www.tgb.cn/blog/..."
 ```
 
 ## 工作流程
