@@ -1,11 +1,26 @@
 #!/usr/bin/env node
-// cdp - lightweight Chrome DevTools Protocol CLI
-// Uses raw CDP over WebSocket, no Puppeteer dependency.
-// Requires Node 22+ (built-in WebSocket).
+// cdp is a lightweight Chrome DevTools Protocol CLI for local browser tabs.
+// Input: a CLI command plus an optional target prefix, URL, selector, or JS expr.
+// Output: page lists, extracted text/HTML, screenshots, or command status text.
+// Public interface: list, snap, eval, shot, html, nav, net, click, clickxy,
+// type, loadall, evalraw, open, and stop.
 //
-// Per-tab persistent daemon: page commands go through a daemon that holds
-// the CDP session open. Chrome's "Allow debugging" modal fires once per
-// daemon (= once per tab). Daemons auto-exit after 20min idle.
+// The script connects directly to a Chrome-family browser over raw WebSocket.
+// It avoids Puppeteer and keeps one daemon per tab to reuse approval state.
+// The daemon attaches to a tab once and serves subsequent commands over a
+// local socket until the tab closes or the idle timeout expires.
+//
+// Connection discovery starts from DevToolsActivePort. The port file can hold a
+// stale browser websocket path after restarts, so this script prefers the live
+// websocket URL from /json/version and only falls back to the port file path.
+//
+// Requires Node.js 22+ for built-in fetch and WebSocket support.
+// Runtime files live under the platform-specific cache/runtime directory.
+// Target prefixes come from the `list` command and must be unique.
+// Navigation only allows http/https URLs.
+// Screenshot coordinate output is reported in CSS pixel terms for CDP input.
+// Errors are returned as plain text so they can be surfaced by skill wrappers.
+// See ../references/cli-reference.md and ../references/troubleshooting.md.
 
 import { readFileSync, writeFileSync, unlinkSync, existsSync, mkdirSync } from 'fs';
 import { homedir } from 'os';
@@ -35,7 +50,7 @@ function sockPath(targetId) {
     : resolve(RUNTIME_DIR, `cdp-${targetId}.sock`);
 }
 
-function getWsUrl() {
+async function getWsUrl() {
   const home = homedir();
   // macOS: ~/Library/Application Support/<name>/DevToolsActivePort
   const macBrowsers = [
@@ -84,7 +99,20 @@ function getWsUrl() {
   const lines = readFileSync(portFile, 'utf8').trim().split('\n');
   if (lines.length < 2 || !lines[0] || !lines[1]) throw new Error(`Invalid DevToolsActivePort file: ${portFile}`);
   const host = process.env.CDP_HOST || '127.0.0.1';
-  return `ws://${host}:${lines[0]}${lines[1]}`;
+  const port = lines[0];
+  const fallbackWsUrl = `ws://${host}:${port}${lines[1]}`;
+
+  // Chrome can leave an old browser websocket path in DevToolsActivePort after
+  // a restart. Prefer the live endpoint from /json/version when possible.
+  try {
+    const res = await fetch(`http://${host}:${port}/json/version`);
+    if (res.ok) {
+      const payload = await res.json();
+      if (payload?.webSocketDebuggerUrl) return payload.webSocketDebuggerUrl;
+    }
+  } catch {}
+
+  return fallbackWsUrl;
 }
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
@@ -488,7 +516,7 @@ async function runDaemon(targetId) {
 
   const cdp = new CDP();
   try {
-    await cdp.connect(getWsUrl());
+    await cdp.connect(await getWsUrl());
   } catch (e) {
     process.stderr.write(`Daemon: cannot connect to Chrome: ${e.message}\n`);
     process.exit(1);
@@ -725,6 +753,7 @@ const USAGE = `cdp - lightweight Chrome DevTools Protocol CLI (no Puppeteer)
 Usage: cdp <command> [args]
 
   list                              List open pages (shows unique target prefixes)
+  list_raw                          List open pages as JSON for scripting
   snap  <target>                    Accessibility tree snapshot
   eval  <target> <expr>             Evaluate JS expression
   shot  <target> [file]             Screenshot (default: screenshot-<target>.png in runtime dir); prints coordinate mapping
@@ -789,13 +818,13 @@ async function main() {
     console.log(USAGE); process.exit(0);
   }
 
-  if (cmd === 'list' || cmd === 'ls') {
+  if (cmd === 'list' || cmd === 'ls' || cmd === 'list_raw') {
     const cdp = new CDP();
-    await cdp.connect(getWsUrl());
+    await cdp.connect(await getWsUrl());
     const pages = await getPages(cdp);
     cdp.close();
     writeFileSync(PAGES_CACHE, JSON.stringify(pages), { mode: 0o600 });
-    console.log(formatPageList(pages));
+    console.log(cmd === 'list_raw' ? JSON.stringify(pages) : formatPageList(pages));
     setTimeout(() => process.exit(0), 100);
     return;
   }
@@ -804,7 +833,7 @@ async function main() {
   if (cmd === 'open') {
     const url = args[0] || 'about:blank';
     const cdp = new CDP();
-    await cdp.connect(getWsUrl());
+    await cdp.connect(await getWsUrl());
     const { targetId } = await cdp.send('Target.createTarget', { url });
     // Refresh cache; new tab may not appear in getTargets immediately, so add it manually
     const pages = await getPages(cdp);

@@ -5,73 +5,50 @@ description: Interact with local Chrome browser session (only on explicit user a
 
 # Chrome CDP
 
-Lightweight Chrome DevTools Protocol CLI. Connects directly via WebSocket — no Puppeteer, works with 100+ tabs, instant connection.
+Use this skill when you need deterministic access to a local Chrome-family browser tab through the DevTools Protocol without Puppeteer.
 
-## Prerequisites
+## Quick start
 
-- Chrome (or Chromium, Brave, Edge, Vivaldi) with remote debugging enabled: open `chrome://inspect/#remote-debugging` and toggle the switch
-- Node.js 22+ (uses built-in WebSocket)
-- If your browser's `DevToolsActivePort` is in a non-standard location, set `CDP_PORT_FILE` to its full path
+- Confirm Chrome remote debugging is enabled at `chrome://inspect/#remote-debugging`.
+- Use `scripts/cdp.mjs list` to identify the target tab prefix.
+- Use `nav` for stable page transitions and `eval` only for page-specific extraction or interaction.
+- Read [references/index.md](references/index.md) before using advanced commands or debugging connection issues.
 
-## Commands
+## When to load references
 
-All commands use `scripts/cdp.mjs`. The `<target>` is a **unique** targetId prefix from `list`; copy the full prefix shown in the `list` output (for example `6BE827FA`). The CLI rejects ambiguous prefixes.
+- For command selection and common workflows, read [references/index.md](references/index.md).
+- For command semantics and examples, read [references/cli-reference.md](references/cli-reference.md).
+- For connection failures, stale `DevToolsActivePort`, or approval prompts, read [references/troubleshooting.md](references/troubleshooting.md).
+- For repeatable `x.com` search and post-extraction workflows, read [references/x-workflows.md](references/x-workflows.md).
+- For repeatable `reddit.com` search and post-plus-comments extraction workflows, read [references/reddit-workflows.md](references/reddit-workflows.md).
+- For repeatable `tgb.cn` / Taoguba workflows, read [references/taoguba-workflows.md](references/taoguba-workflows.md).
+- For the workflow used to develop new SOPs for this skill, read [references/sop-development.md](references/sop-development.md).
 
-### List open pages
+## Core rules
 
-```bash
-scripts/cdp.mjs list
-```
+- The `<target>` argument is a unique `targetId` prefix from `scripts/cdp.mjs list`.
+- Prefer `nav` over click-driven navigation when a stable URL is known.
+- Prefer one `eval` that collects all needed data over multiple DOM-indexed `eval` calls.
+- Use `type` instead of `eval` for text entry in cross-origin iframes.
+- Expect one Chrome "Allow debugging" prompt per tab daemon on first access.
 
-### Take a screenshot
+## Main entrypoint
 
-```bash
-scripts/cdp.mjs shot <target> [file]    # default: screenshot-<target>.png in runtime dir
-```
+All browser actions route through [scripts/cdp.mjs](scripts/cdp.mjs).
 
-Captures the **viewport only**. Scroll first with `eval` if you need content below the fold. Output includes the page's DPR and coordinate conversion hint (see **Coordinates** below).
+## Bundled workflow scripts
 
-### Accessibility tree snapshot
-
-```bash
-scripts/cdp.mjs snap <target>
-```
-
-### Evaluate JavaScript
-
-```bash
-scripts/cdp.mjs eval <target> <expr>
-```
-
-> **Watch out:** avoid index-based selection (`querySelectorAll(...)[i]`) across multiple `eval` calls when the DOM can change between them (e.g. after clicking Ignore, card indices shift). Collect all data in one `eval` or use stable selectors.
-
-### Other commands
-
-```bash
-scripts/cdp.mjs html    <target> [selector]   # full page or element HTML
-scripts/cdp.mjs nav     <target> <url>         # navigate and wait for load
-scripts/cdp.mjs net     <target>               # resource timing entries
-scripts/cdp.mjs click   <target> <selector>    # click element by CSS selector
-scripts/cdp.mjs clickxy <target> <x> <y>       # click at CSS pixel coords
-scripts/cdp.mjs type    <target> <text>         # Input.insertText at current focus; works in cross-origin iframes unlike eval
-scripts/cdp.mjs loadall <target> <selector> [ms]  # click "load more" until gone (default 1500ms between clicks)
-scripts/cdp.mjs evalraw <target> <method> [json]  # raw CDP command passthrough
-scripts/cdp.mjs open    [url]                  # open new tab (each triggers Allow prompt)
-scripts/cdp.mjs stop    [target]               # stop daemon(s)
-```
-
-## Coordinates
-
-`shot` saves an image at native resolution: image pixels = CSS pixels × DPR. CDP Input events (`clickxy` etc.) take **CSS pixels**.
-
-```
-CSS px = screenshot image px / DPR
-```
-
-`shot` prints the DPR for the current page. Typical Retina (DPR=2): divide screenshot coords by 2.
-
-## Tips
-
-- Prefer `snap --compact` over `html` for page structure.
-- Use `type` (not eval) to enter text in cross-origin iframes — `click`/`clickxy` to focus first, then `type`.
-- Chrome shows an "Allow debugging" modal once per tab on first access. A background daemon keeps the session alive so subsequent commands need no further approval. Daemons auto-exit after 20 minutes of inactivity.
+- `scripts/x-search.sh`
+  Search `x.com` with the default result page and extract up to 10 result summaries.
+- `scripts/x-open-post.sh`
+  Open one `x.com` post URL and extract the current visible post text.
+- `scripts/reddit-search.sh`
+  Search `reddit.com` and extract up to 10 result summaries.
+- `scripts/reddit-open-post.sh`
+  Open one Reddit post URL and extract the main post plus top visible comments.
+- `scripts/taoguba-jinghua.sh`
+  Extract Taoguba `jinghua` posts from the last 24 hours by default.
+- `scripts/taoguba-following.sh`
+  Extract followed-content updates from the last 12 hours by default.
+- `scripts/taoguba-open-post.sh`
+  Open one Taoguba post and extract the main post body.
