@@ -42,6 +42,8 @@ Load core references for shared browser behavior:
 
 Load site references for website-specific workflows:
 
+- [references/sites/google/workflows.md](references/sites/google/workflows.md)
+  `google.com` search workflow: returns top organic results with title, snippet, and URL.
 - [references/sites/kdocs/workflows.md](references/sites/kdocs/workflows.md)
   `365.kdocs.cn` / WPS 365 document search, open, find-in-doc, AI QA, and close workflows.
 - [references/sites/reddit/workflows.md](references/sites/reddit/workflows.md)
@@ -67,6 +69,11 @@ All browser actions currently route through [scripts/cdp.mjs](scripts/cdp.mjs).
 This file stays in place as the stable forked core entrypoint while site workflows move into per-site subdirectories.
 
 ## Current Site Workflow Scripts
+
+### Google
+
+- `scripts/sites/google/search.sh`
+  Search `google.com` and extract up to 20 organic result summaries (title, snippet, url).
 
 ### Reddit
 
@@ -118,6 +125,7 @@ Current test commands:
 
 - `node scripts/test.mjs list`
 - `node scripts/test.mjs core`
+- `node scripts/test.mjs site google`
 - `node scripts/test.mjs site reddit`
 - `node scripts/test.mjs site taoguba`
 - `node scripts/test.mjs site x`

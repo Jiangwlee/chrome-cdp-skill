@@ -36,7 +36,7 @@ function usage() {
     '  node skills/chrome-cdp/scripts/test.mjs list',
     '  node skills/chrome-cdp/scripts/test.mjs all [--json] [--fail-fast]',
     '  node skills/chrome-cdp/scripts/test.mjs core [--json] [--fail-fast]',
-    '  node skills/chrome-cdp/scripts/test.mjs site <kdocs|reddit|taoguba|x> [--json] [--fail-fast]',
+    '  node skills/chrome-cdp/scripts/test.mjs site <google|kdocs|reddit|taoguba|x> [--json] [--fail-fast]',
   ].join('\n'));
   process.exit(1);
 }
@@ -190,6 +190,7 @@ const KDOCS_QUERY = process.env.CDP_TEST_KDOCS_QUERY || '天基遥感';
 const KDOCS_AI_QUERY = process.env.CDP_TEST_KDOCS_AI_QUERY || '天基遥感 经费';
 const REDDIT_QUERY = process.env.CDP_TEST_REDDIT_QUERY || 'openai';
 const X_QUERY = process.env.CDP_TEST_X_QUERY || 'openai';
+const GOOGLE_QUERY = process.env.CDP_TEST_GOOGLE_QUERY || 'openai';
 const TAOGUBA_HOURS = envInt('CDP_TEST_TAOGUBA_HOURS', 168);
 const TAOGUBA_LIMIT = envInt('CDP_TEST_TAOGUBA_LIMIT', 5);
 
@@ -211,6 +212,30 @@ const tests = [
         commands: [result.command],
         stdout_excerpt: result.stdout.slice(0, 400),
         data: { page_count: value.length },
+      };
+    },
+  },
+  {
+    name: 'site.google.search.smoke',
+    scope: 'site',
+    site: 'google',
+    workflow: 'search',
+    level: 'smoke',
+    setupHint: 'Make sure at least one Chrome tab is open before running Google smoke tests.',
+    failHint: 'Check scripts/sites/google/search.sh and references/sites/google/workflows.md.',
+    async run() {
+      const script = resolve(SITE_SCRIPTS_DIR, 'google', 'search.sh');
+      const { result, value } = await runJsonCommand('bash', [script, GOOGLE_QUERY, '5'], 60000);
+      assert(Array.isArray(value), 'google search should return a JSON array');
+      assert(value.length > 0, 'google search should return at least one result');
+      assert(typeof value[0]?.url === 'string' && value[0].url.startsWith('https://'), 'google search result should include a valid URL');
+      assert(typeof value[0]?.title === 'string' && value[0].title.length > 0, 'google search result should include a non-empty title');
+      return {
+        status: 'pass',
+        command: result.command,
+        commands: [result.command],
+        stdout_excerpt: result.stdout.slice(0, 400),
+        data: { result_count: value.length, first_url: value[0].url },
       };
     },
   },
