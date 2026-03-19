@@ -12,6 +12,7 @@ const SKILL_DIR = resolve(SCRIPT_DIR, '..');
 const REPO_ROOT = resolve(SKILL_DIR, '..', '..');
 const CDP_SCRIPT = resolve(SCRIPT_DIR, 'cdp.mjs');
 const SITE_SCRIPTS_DIR = resolve(SCRIPT_DIR, 'sites');
+const TESTS_DIR = resolve(SKILL_DIR, 'tests');
 
 const argv = process.argv.slice(2);
 const options = {
@@ -36,7 +37,7 @@ function usage() {
     '  node skills/chrome-cdp/scripts/test.mjs list',
     '  node skills/chrome-cdp/scripts/test.mjs all [--json] [--fail-fast]',
     '  node skills/chrome-cdp/scripts/test.mjs core [--json] [--fail-fast]',
-    '  node skills/chrome-cdp/scripts/test.mjs site <google|kdocs|reddit|taoguba|x> [--json] [--fail-fast]',
+    '  node skills/chrome-cdp/scripts/test.mjs site <google|kdocs|reddit|taoguba|x|xueqiu> [--json] [--fail-fast]',
   ].join('\n'));
   process.exit(1);
 }
@@ -190,6 +191,8 @@ const KDOCS_QUERY = process.env.CDP_TEST_KDOCS_QUERY || '天基遥感';
 const KDOCS_AI_QUERY = process.env.CDP_TEST_KDOCS_AI_QUERY || '天基遥感 经费';
 const REDDIT_QUERY = process.env.CDP_TEST_REDDIT_QUERY || 'openai';
 const X_QUERY = process.env.CDP_TEST_X_QUERY || 'openai';
+const XUEQIU_QUERY = process.env.CDP_TEST_XUEQIU_QUERY || '腾讯';
+const XUEQIU_STOCK = process.env.CDP_TEST_XUEQIU_STOCK || '00700';
 const GOOGLE_QUERY = process.env.CDP_TEST_GOOGLE_QUERY || 'openai';
 const TAOGUBA_HOURS = envInt('CDP_TEST_TAOGUBA_HOURS', 168);
 const TAOGUBA_LIMIT = envInt('CDP_TEST_TAOGUBA_LIMIT', 5);
@@ -517,6 +520,114 @@ const tests = [
       };
     },
   },
+  {
+    name: 'site.xueqiu.search.smoke',
+    scope: 'site',
+    site: 'xueqiu',
+    workflow: 'search',
+    level: 'smoke',
+    setupHint: 'Open a usable xueqiu.com tab in Chrome before running Xueqiu smoke tests.',
+    failHint: 'Check scripts/sites/xueqiu/search.sh and references/sites/xueqiu/workflows.md.',
+    async run() {
+      const script = resolve(SITE_SCRIPTS_DIR, 'xueqiu', 'search.sh');
+      const { result, value } = await runJsonCommand('bash', [script, XUEQIU_QUERY, '3'], 60000);
+      assert(Array.isArray(value), 'xueqiu search should return a JSON array');
+      assert(value.length > 0, 'xueqiu search should return at least one result');
+      assert(typeof value[0]?.url === 'string' && value[0].url.startsWith('https://xueqiu.com/'), 'xueqiu search result should include a Xueqiu post URL');
+      return {
+        status: 'pass',
+        command: result.command,
+        commands: [result.command],
+        stdout_excerpt: result.stdout.slice(0, 400),
+        data: { result_count: value.length, first_url: value[0].url },
+      };
+    },
+  },
+  {
+    name: 'site.xueqiu.open_post.smoke',
+    scope: 'site',
+    site: 'xueqiu',
+    workflow: 'open_post',
+    level: 'smoke',
+    setupHint: 'Open a usable xueqiu.com tab in Chrome before running Xueqiu smoke tests.',
+    failHint: 'Check scripts/sites/xueqiu/open-post.sh and references/sites/xueqiu/workflows.md.',
+    async run() {
+      const searchScript = resolve(SITE_SCRIPTS_DIR, 'xueqiu', 'search.sh');
+      const openScript = resolve(SITE_SCRIPTS_DIR, 'xueqiu', 'open-post.sh');
+      const searchRun = await runJsonCommand('bash', [searchScript, XUEQIU_QUERY, '3'], 60000);
+      const results = searchRun.value;
+      assert(Array.isArray(results) && results.length > 0, 'xueqiu search must return at least one result before open-post');
+      const postUrl = results[0].url;
+      const openRun = await runJsonCommand('bash', [openScript, postUrl, '3'], 60000);
+      const post = openRun.value;
+      assert(post && typeof post === 'object' && !Array.isArray(post), 'xueqiu open-post should return a JSON object');
+      assert(typeof post.url === 'string' && post.url.startsWith('https://xueqiu.com/'), 'xueqiu open-post should include the navigated post URL');
+      assert(typeof post.text === 'string' && post.text.length > 0, 'xueqiu open-post should include extracted post text');
+      assert(Array.isArray(post.comments), 'xueqiu open-post should include a comments array');
+      return {
+        status: 'pass',
+        command: openRun.result.command,
+        commands: [searchRun.result.command, openRun.result.command],
+        stdout_excerpt: openRun.result.stdout.slice(0, 400),
+        data: { url: post.url, comment_count: post.comments.length },
+      };
+    },
+  },
+  {
+    name: 'site.xueqiu.hot.smoke',
+    scope: 'site',
+    site: 'xueqiu',
+    workflow: 'hot',
+    level: 'smoke',
+    setupHint: 'Open a usable xueqiu.com tab in Chrome before running Xueqiu smoke tests.',
+    failHint: 'Check scripts/sites/xueqiu/hot.sh, tests/sites/xueqiu/smoke.sh, and references/sites/xueqiu/workflows.md.',
+    async run() {
+      const script = resolve(TESTS_DIR, 'sites', 'xueqiu', 'smoke.sh');
+      const result = await runCommand('bash', [script], 60000);
+      assert(result.ok, 'xueqiu hot smoke should exit successfully');
+      const parsed = parseJsonOutput(result);
+      assert(parsed.ok, 'xueqiu hot smoke should emit JSON');
+      assert(Array.isArray(parsed.value) && parsed.value.length > 0, 'xueqiu hot smoke should return at least one result');
+      return {
+        status: 'pass',
+        command: result.command,
+        commands: [result.command],
+        stdout_excerpt: result.stdout.slice(0, 400),
+        data: { result_count: parsed.value.length },
+      };
+    },
+  },
+  {
+    name: 'site.xueqiu.stock_info.smoke',
+    scope: 'site',
+    site: 'xueqiu',
+    workflow: 'stock_info',
+    level: 'smoke',
+    setupHint: 'Open a usable xueqiu.com tab in Chrome before running Xueqiu stock-info smoke tests.',
+    failHint: 'Check scripts/sites/xueqiu/stock-info.sh, tests/sites/xueqiu/stock-info-smoke.sh, and references/sites/xueqiu/workflows.md.',
+    async run() {
+      const script = resolve(TESTS_DIR, 'sites', 'xueqiu', 'stock-info-smoke.sh');
+      const result = await runCommand('bash', [script, XUEQIU_STOCK], 90000);
+      assert(result.ok, 'xueqiu stock-info smoke should exit successfully');
+      const parsed = parseJsonOutput(result);
+      assert(parsed.ok, 'xueqiu stock-info smoke should emit JSON');
+      assert(Array.isArray(parsed.value?.announcements), 'xueqiu stock-info should include announcements');
+      assert(Array.isArray(parsed.value?.discussions), 'xueqiu stock-info should include discussions');
+      assert(parsed.value.announcements.length > 0, 'xueqiu stock-info should return at least one announcement');
+      assert(parsed.value.discussions.length > 0, 'xueqiu stock-info should return at least one discussion');
+      return {
+        status: 'pass',
+        command: result.command,
+        commands: [result.command],
+        stdout_excerpt: result.stdout.slice(0, 400),
+        data: {
+          stock_url: parsed.value.stock_url,
+          announcement_count: parsed.value.announcements.length,
+          discussion_count: parsed.value.discussions.length,
+        },
+      };
+    },
+  },
 ];
 
 function selectTests(args) {
@@ -594,6 +705,8 @@ async function main() {
     env: {
       reddit_query: REDDIT_QUERY,
       x_query: X_QUERY,
+      xueqiu_query: XUEQIU_QUERY,
+      xueqiu_stock: XUEQIU_STOCK,
       taoguba_hours: TAOGUBA_HOURS,
       taoguba_limit: TAOGUBA_LIMIT,
     },

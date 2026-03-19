@@ -27,6 +27,8 @@ specific reference file to load and the `scripts/cdp.mjs` command to run.
   Stable SOPs and script entrypoints for `reddit.com` search and post-plus-comments extraction.
 - [../sites/taoguba/workflows.md](../sites/taoguba/workflows.md)
   Stable SOPs and script entrypoints for `tgb.cn` / Taoguba list filtering and post extraction.
+- [../sites/xueqiu/workflows.md](../sites/xueqiu/workflows.md)
+  Stable SOPs and script entrypoints for `xueqiu.com` search, hot posts, and post-plus-comments extraction.
 - [sop-development.md](sop-development.md)
   The development workflow used to turn a new website task into a stable SOP, reference doc, and reusable script set.
 
@@ -53,6 +55,11 @@ specific reference file to load and the `scripts/cdp.mjs` command to run.
   [../../scripts/sites/x/search.sh](../../scripts/sites/x/search.sh),
   [../../scripts/sites/x/open-post.sh](../../scripts/sites/x/open-post.sh),
   [../../scripts/sites/x/common.sh](../../scripts/sites/x/common.sh),
+  [../../scripts/sites/xueqiu/search.sh](../../scripts/sites/xueqiu/search.sh),
+  [../../scripts/sites/xueqiu/open-post.sh](../../scripts/sites/xueqiu/open-post.sh),
+  [../../scripts/sites/xueqiu/hot.sh](../../scripts/sites/xueqiu/hot.sh),
+  [../../scripts/sites/xueqiu/stock-info.sh](../../scripts/sites/xueqiu/stock-info.sh),
+  [../../scripts/sites/xueqiu/common.sh](../../scripts/sites/xueqiu/common.sh),
   [../../scripts/sites/reddit/search.sh](../../scripts/sites/reddit/search.sh),
   [../../scripts/sites/reddit/open-post.sh](../../scripts/sites/reddit/open-post.sh),
   [../../scripts/sites/reddit/common.sh](../../scripts/sites/reddit/common.sh),

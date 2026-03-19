@@ -52,6 +52,8 @@ Load site references for website-specific workflows:
   `tgb.cn` / Taoguba workflow guidance.
 - [references/sites/x/workflows.md](references/sites/x/workflows.md)
   `x.com` search and post-extraction workflows.
+- [references/sites/xueqiu/workflows.md](references/sites/xueqiu/workflows.md)
+  `xueqiu.com` search, hot-post list, and post-plus-comments workflows.
 
 ## Core Rules
 
@@ -111,6 +113,17 @@ This file stays in place as the stable forked core entrypoint while site workflo
 - `scripts/sites/x/open-post.sh`
   Open one `x.com` post URL and extract the current visible post text.
 
+### Xueqiu
+
+- `scripts/sites/xueqiu/search.sh`
+  Search `xueqiu.com` and extract up to 10 discussion results.
+- `scripts/sites/xueqiu/open-post.sh`
+  Open one `xueqiu.com` post URL and extract the main article plus visible comments.
+- `scripts/sites/xueqiu/hot.sh`
+  Extract the current visible "热门" home timeline post list.
+- `scripts/sites/xueqiu/stock-info.sh`
+  Open one stock page and extract the latest visible announcements and discussions.
+
 ## Expected Future Structure
 
 Each supported site should eventually have:
@@ -129,6 +142,7 @@ Current test commands:
 - `node scripts/test.mjs site reddit`
 - `node scripts/test.mjs site taoguba`
 - `node scripts/test.mjs site x`
+- `node scripts/test.mjs site xueqiu`
 - `node scripts/test.mjs all`
 
 ## Definition Of Done For New Site Support
