@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Ask WPS Docs Chat a question and return the AI answer plus references.
 # Input: a natural-language question and optional main target prefix.
-# Output: a JSON object with question, scope, answer, references, and target.
+# Output: a JSON object with question, scope, answer, references, and main_target.
 # Public interface: kdocs-ask-ai.sh <question> [main_target_prefix].
 #
 # The script reuses the 365.kdocs.cn/latest tab but does not depend on the UI
@@ -48,7 +48,7 @@ RUN_EXPR=$(cat <<'EOF'
     answer: '',
     references: [],
     session_id: '',
-    target,
+    main_target: target,
     last_citation_text: '',
     last_answer_len: 0,
     last_growth_ts: Date.now(),
@@ -257,7 +257,7 @@ RESULT_EXPR=$(cat <<'EOF'
     scope: result.scope || 'all_parsed_files',
     answer: result.answer || '',
     references,
-    target: result.target || __TARGET_JSON__,
+    main_target: result.main_target || result.target || __TARGET_JSON__,
     is_partial: referencesPending,
     references_pending: referencesPending
   });

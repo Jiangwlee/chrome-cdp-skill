@@ -7,7 +7,8 @@
 # wait_for_kdocs_doc, wait_for_kdocs_ai_box, wait_for_kdocs_ai_answer,
 # kdocs_snap_text.
 #
-# kdocs_find_main_tab selects a 365.kdocs.cn/latest tab.
+# kdocs_find_main_tab selects a reusable 365.kdocs.cn main tab.
+# If none is open, it creates one at https://365.kdocs.cn/ and waits for it.
 # kdocs_find_doc_tab selects an open 365.kdocs.cn/l/ document tab.
 # wait_for_kdocs_items polls until search result .item-container nodes appear.
 # wait_for_kdocs_doc polls until document.title changes from "WPS 365".
@@ -65,11 +66,39 @@ kdocs_find_main_tab() {
   fi
   local pages
   pages="$(cdp_list_raw)"
-  jq -r '
+  local target
+  target="$(jq -r '
     map(select(.type == "page"))
-    | map(select(.url | test("^https://365\\.kdocs\\.cn/(latest|$)")))
+    | map(select(.url | test("^https://365\\.kdocs\\.cn/")))
+    | (
+        map(select(.url | test("^https://365\\.kdocs\\.cn/(latest|$)")))
+        + map(select(.url | (test("^https://365\\.kdocs\\.cn/l/") | not)))
+      )
+    | unique_by(.targetId)
     | .[0].targetId // empty
-  ' <<<"$pages"
+  ' <<<"$pages")"
+  if [[ -n "$target" ]]; then
+    printf '%s\n' "$target"
+    return 0
+  fi
+
+  cdp open "https://365.kdocs.cn/" >/dev/null 2>/dev/null || true
+  for _ in $(seq 1 40); do
+    sleep 0.5
+    pages="$(cdp_list_raw)"
+    target="$(jq -r '
+      map(select(.type == "page"))
+      | map(select(.url | test("^https://365\\.kdocs\\.cn/")))
+      | map(select(.url | (test("^https://365\\.kdocs\\.cn/l/") | not)))
+      | .[0].targetId // empty
+    ' <<<"$pages")"
+    if [[ -n "$target" ]]; then
+      printf '%s\n' "$target"
+      return 0
+    fi
+  done
+
+  return 1
 }
 
 kdocs_find_doc_tab() {
@@ -85,6 +114,11 @@ kdocs_find_doc_tab() {
     | map(select(.url | test("^https://365\\.kdocs\\.cn/l/")))
     | .[0].targetId // empty
   ' <<<"$pages"
+}
+
+kdocs_target_url() {
+  local target="$1"
+  cdp_eval "$target" "window.location.href" | jq -r '.' 2>/dev/null || true
 }
 
 wait_for_kdocs_items() {

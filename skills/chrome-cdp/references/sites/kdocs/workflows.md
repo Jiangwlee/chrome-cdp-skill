@@ -26,7 +26,7 @@ Public entrypoints are `search.sh`, `open-doc.sh`, `find-in-doc.sh`,
 
 - [../../scripts/sites/kdocs/open-doc.sh](../../scripts/sites/kdocs/open-doc.sh)
   Inputs: file key (e.g. `file_503025782506`), optional main tab prefix.
-  Output: JSON object with `title`, `url`, `target`, `word_count`, and
+  Output: JSON object with `title`, `url`, `doc_target`, `word_count`, and
   `visible_text` (the first screen of accessible document text).
 
 - [../../scripts/sites/kdocs/find-in-doc.sh](../../scripts/sites/kdocs/find-in-doc.sh)
@@ -37,15 +37,16 @@ Public entrypoints are `search.sh`, `open-doc.sh`, `find-in-doc.sh`,
 - [../../scripts/sites/kdocs/ask-ai.sh](../../scripts/sites/kdocs/ask-ai.sh)
   Inputs: natural-language question, optional main tab prefix.
   Output: JSON object with `question`, `scope`, `answer`, `references`, and
-  `target`.
+  `main_target`.
 
 - [../../scripts/sites/kdocs/close-doc.sh](../../scripts/sites/kdocs/close-doc.sh)
   Inputs: optional doc tab prefix.
-  Output: JSON object confirming closure.
+  Output: JSON object with `closed_target`, `closed_url`, and `main_tab_alive`.
 
 ## Search SOP
 
-1. Find or reuse the `365.kdocs.cn/latest` main tab.
+1. Find or reuse the `365.kdocs.cn` main tab. If none is open, create one at
+   `https://365.kdocs.cn/`.
 2. Navigate to `https://365.kdocs.cn/latest` to ensure clean state.
 3. Click the search bar to open the search panel (modal overlay, no URL change).
 4. Type the query; the panel shows results under Document Name and Full Text tabs.
@@ -57,7 +58,8 @@ Public entrypoints are `search.sh`, `open-doc.sh`, `find-in-doc.sh`,
 
 ## Open-doc SOP
 
-1. Find the `365.kdocs.cn/latest` main tab.
+1. Find the `365.kdocs.cn` main tab. If none is open, create one at
+   `https://365.kdocs.cn/`.
 2. Derive the document URL from the file key: strip the `file_` prefix to get
    the numeric id, then form `https://365.kdocs.cn/l/<id>`.
 3. Call `window.open(url, '_blank')` on the main tab. A new doc tab opens.
@@ -65,7 +67,7 @@ Public entrypoints are `search.sh`, `open-doc.sh`, `find-in-doc.sh`,
 5. Wait until `document.title` changes from `WPS 365` to the document name.
 6. Extract the visible document text via the accessibility tree (`snap`),
    filtering out toolbar and UI labels.
-7. Return `title`, `url`, `target` (targetId prefix), `word_count`, and
+7. Return `title`, `url`, `doc_target` (targetId prefix), `word_count`, and
    `visible_text`.
 
 ## Find-in-doc SOP
@@ -82,7 +84,8 @@ Public entrypoints are `search.sh`, `open-doc.sh`, `find-in-doc.sh`,
 
 ## Ask-ai SOP
 
-1. Find or reuse the `365.kdocs.cn/latest` main tab.
+1. Find or reuse the `365.kdocs.cn` main tab. If none is open, create one at
+   `https://365.kdocs.cn/`.
 2. Navigate to `https://365.kdocs.cn/latest` to reset into the stable home page.
 3. Ensure the `Docs Chat` panel is open; if the QA textarea is absent, click
    the `Docs Chat` button in the main page toolbar.
@@ -98,13 +101,17 @@ Public entrypoints are `search.sh`, `open-doc.sh`, `find-in-doc.sh`,
 ## Close-doc SOP
 
 1. Find the `365.kdocs.cn/l/` doc tab.
-2. Send `Page.close` CDP command to close the tab.
-3. Verify the main `365.kdocs.cn/latest` tab is still open.
+2. If a target prefix was passed explicitly, resolve its current URL and require
+   it to match `https://365.kdocs.cn/l/`.
+3. Send `Page.close` CDP command to close the tab.
+4. Verify the main `365.kdocs.cn/latest` tab is still open.
 
 ## Notes
 
 - The search panel is a modal overlay; the URL stays at `365.kdocs.cn/latest`.
   There is no direct search URL to navigate to.
+- Main-tab discovery accepts existing `365.kdocs.cn/ent/...` workspace pages.
+  If no WPS tab exists, the helper opens `https://365.kdocs.cn/` automatically.
 - `ask-ai.sh` currently scopes to `All parsed files`, matching the default Docs
   Chat textarea placeholder. It does not yet automate `@`-mentioning specific
   files.

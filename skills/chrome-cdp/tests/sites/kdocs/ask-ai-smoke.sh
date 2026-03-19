@@ -15,5 +15,7 @@ echo "$OUTPUT" | jq -e '
   and .answer != null
   and (.answer | length > 0)
   and (.references | type == "array")
+  and (.main_target | type == "string")
+  and (.main_target | length > 0)
 ' >/dev/null
 echo "$OUTPUT"

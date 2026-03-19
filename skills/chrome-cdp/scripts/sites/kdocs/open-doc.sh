@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Open a WPS 365 document by file key and return its outline and visible text.
 # Input: a file key (e.g. file_503025782506) and optional main tab prefix.
-# Output: a JSON object with title, url, target, word_count, and visible_text.
+# Output: a JSON object with title, url, doc_target, word_count, and visible_text.
 # Public interface: kdocs-open-doc.sh <file_key> [main_target_prefix].
 #
 # The script finds the item matching file_key in the current DOM. If the search
@@ -88,4 +88,4 @@ jq -n \
   --arg target   "$DOC_TARGET" \
   --arg wc       "$WORD_COUNT" \
   --argjson text "$VISIBLE_TEXT" \
-  '{title: $title, url: $url, target: $target, word_count: ($wc | tonumber), visible_text: $text}'
+  '{title: $title, url: $url, doc_target: $target, word_count: ($wc | tonumber), visible_text: $text}'

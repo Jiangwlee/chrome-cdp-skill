@@ -405,11 +405,38 @@ const tests = [
         Array.isArray(value.references),
         'kdocs ask-ai result should include a references array'
       );
+      assert(
+        typeof value.main_target === 'string' && value.main_target.length > 0,
+        'kdocs ask-ai result should include a non-empty main_target'
+      );
       return {
         status: 'pass',
         command: result.command,
         stdout_excerpt: result.stdout.slice(0, 400),
         data: { reference_count: value.references.length },
+      };
+    },
+  },
+  {
+    name: 'site.kdocs.close_doc_guard.smoke',
+    scope: 'site',
+    site: 'kdocs',
+    workflow: 'close_doc_guard',
+    level: 'smoke',
+    setupHint: 'Open a 365.kdocs.cn/latest tab in Chrome before running kdocs close-doc guard tests.',
+    failHint: 'Check scripts/sites/kdocs/close-doc.sh and references/sites/kdocs/workflows.md.',
+    async run() {
+      const script = resolve(TESTS_DIR, 'sites', 'kdocs', 'close-doc-guard-smoke.sh');
+      const result = await runCommand('bash', [script], 60000);
+      assert(result.exitCode === 0, 'kdocs close-doc guard smoke should exit successfully');
+      assert(
+        /refusing to close non-document tab/i.test(result.stdout),
+        'kdocs close-doc guard smoke should confirm the main tab was rejected'
+      );
+      return {
+        status: 'pass',
+        command: result.command,
+        stdout_excerpt: result.stdout.slice(0, 400),
       };
     },
   },
