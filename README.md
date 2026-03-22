@@ -78,6 +78,21 @@ These now live in per-site subdirectories under `skills/chrome-cdp/scripts/sites
 
 ## Installation
 
+### One-line install (Recommended)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Jiangwlee/chrome-cdp-skill/main/install.sh | bash
+```
+
+Or with options:
+```bash
+# Install latest stable release instead of git clone
+curl -fsSL https://raw.githubusercontent.com/Jiangwlee/chrome-cdp-skill/main/install.sh | bash -s -- --stable
+
+# Check prerequisites without installing
+curl -fsSL https://raw.githubusercontent.com/Jiangwlee/chrome-cdp-skill/main/install.sh | bash -s -- --check
+```
+
 ### Full install (skill + agents + wrappers)
 
 ```bash

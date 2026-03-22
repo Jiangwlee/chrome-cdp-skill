@@ -48,11 +48,13 @@ chrome-cdp-skill/
     link-reader.md        ← 解读单条 X 或 Reddit URL
     web-researcher.md     ← 多轮主题研究
     stock-analyst.md      ← 淘股吧行情分析
+    taoguba-researcher.md ← 淘股吧深度研究
     wps-assistant.md      ← WPS 365 文档问答
     bin/
       pi-read-link        ← CLI 包装脚本
       pi-research         ← CLI 包装脚本
       pi-stock-report     ← CLI 包装脚本
+      pi-taoguba-research ← CLI 包装脚本
       pi-wps              ← CLI 包装脚本
 ```
 
@@ -79,6 +81,21 @@ chrome-cdp-skill/
 - `skills/chrome-cdp/scripts/sites/x/open-post.sh`
 
 ## 安装
+
+### 一键安装（推荐）
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Jiangwlee/chrome-cdp-skill/main/install.sh | bash
+```
+
+带参数安装：
+```bash
+# 安装最新稳定版（非 git clone）
+curl -fsSL https://raw.githubusercontent.com/Jiangwlee/chrome-cdp-skill/main/install.sh | bash -s -- --stable
+
+# 仅检查环境，不安装
+curl -fsSL https://raw.githubusercontent.com/Jiangwlee/chrome-cdp-skill/main/install.sh | bash -s -- --check
+```
 
 ### 完整安装（skill + agents + 包装脚本）
 
