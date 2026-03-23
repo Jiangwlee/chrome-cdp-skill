@@ -42,8 +42,12 @@ Load core references for shared browser behavior:
 
 Load site references for website-specific workflows:
 
+- [references/sites/baidu/workflows.md](references/sites/baidu/workflows.md)
+  `baidu.com` search workflow: returns top organic results with title, snippet, and URL.
 - [references/sites/google/workflows.md](references/sites/google/workflows.md)
   `google.com` search workflow: returns top organic results with title, snippet, and URL.
+- [references/sites/weixin-sogou/workflows.md](references/sites/weixin-sogou/workflows.md)
+  `weixin.sogou.com` WeChat article search: returns title, summary, account, and link (search only, no full content).
 - [references/sites/kdocs/workflows.md](references/sites/kdocs/workflows.md)
   `365.kdocs.cn` / WPS 365 document search, open, find-in-doc, AI QA, and close workflows.
 - [references/sites/reddit/workflows.md](references/sites/reddit/workflows.md)
@@ -64,6 +68,78 @@ Load site references for website-specific workflows:
 - Expect one Chrome "Allow debugging" prompt per tab daemon on first access.
 - Keep browser primitives in the core layer. Do not bury general CDP logic inside a site-specific workflow unless the behavior is truly site-bound.
 
+## ⚠️ Critical Constraint: No Concurrent CDP Calls
+
+**NEVER run multiple CDP scripts in parallel.** The Chrome DevTools Protocol (CDP) uses a single WebSocket connection per session, and concurrent calls will cause race conditions, connection errors, and unpredictable failures.
+
+### Why Concurrent Calls Fail
+
+```
+Script A ──┐
+Script B ──┼──► cdp.mjs ──► Chrome WebSocket ──► Tab X
+Script C ──┘         ↑              ↑
+                     └──── Race ────┘
+```
+
+| Conflict | Result |
+|----------|--------|
+| WebSocket handshake collision | `tool error` / connection timeout |
+| Tab navigation race | Last `nav` overwrites previous, scripts see wrong page |
+| DOM state corruption | Script waits for selector on wrong page, times out |
+
+### Correct Usage: Sequential Execution
+
+```bash
+# ✗ WRONG: Parallel execution (causes race conditions)
+bash scripts/sites/baidu/search.sh "query1" 5 &
+bash scripts/sites/google/search.sh "query2" 5 &
+bash scripts/sites/weixin-sogou/search.sh "query3" 5 &
+
+# ✓ CORRECT: Sequential execution with delay
+bash scripts/sites/baidu/search.sh "query1" 5
+sleep 2
+bash scripts/sites/google/search.sh "query2" 5
+sleep 2
+bash scripts/sites/weixin-sogou/search.sh "query3" 5
+```
+
+### Multi-Site Search Pattern
+
+When searching multiple sites for the same topic, always serialize calls:
+
+```bash
+#!/bin/bash
+# multi-site-search.sh - Sequential multi-site search
+
+QUERY="电力板块 风险"
+TARGET="8A8D27FF"  # Use a stable tab
+
+echo "=== Baidu ==="
+bash scripts/sites/baidu/search.sh "$QUERY" 5 "$TARGET"
+sleep 2
+
+echo "=== Google ==="
+bash scripts/sites/google/search.sh "$QUERY" 5 "$TARGET"
+sleep 2
+
+echo "=== Weixin-Sogou ==="
+bash scripts/sites/weixin-sogou/search.sh "$QUERY" 5 "$TARGET"
+```
+
+### If You Must Parallelize
+
+Use **different target tabs** for each concurrent call:
+
+```bash
+# Each script uses a different Chrome tab
+bash scripts/sites/baidu/search.sh "query1" 5 FDDF7F05 &   # Tab 1
+bash scripts/sites/google/search.sh "query2" 5 8A8D27FF &  # Tab 2
+bash scripts/sites/weixin-sogou/search.sh "query3" 5 B67F18DE &  # Tab 3
+wait  # Wait for all background jobs
+```
+
+**Note**: Even with different tabs, excessive concurrent connections may still overwhelm Chrome's DevTools server. Prefer sequential execution when possible.
+
 ## Main Entrypoint
 
 All browser actions currently route through [scripts/cdp.mjs](scripts/cdp.mjs).
@@ -71,6 +147,11 @@ All browser actions currently route through [scripts/cdp.mjs](scripts/cdp.mjs).
 This file stays in place as the stable forked core entrypoint while site workflows move into per-site subdirectories.
 
 ## Current Site Workflow Scripts
+
+### Baidu
+
+- `scripts/sites/baidu/search.sh`
+  Search `baidu.com` and extract up to 20 organic result summaries (title, snippet, url).
 
 ### Google
 
@@ -113,6 +194,11 @@ This file stays in place as the stable forked core entrypoint while site workflo
 - `scripts/sites/x/open-post.sh`
   Open one `x.com` post URL and extract the current visible post text.
 
+### Weixin-Sogou
+
+- `scripts/sites/weixin-sogou/search.sh`
+  Search `weixin.sogou.com` (搜狗微信搜索) and extract article metadata (title, summary, account, time, link). Note: Only search is supported; full article content requires WeChat environment.
+
 ### Xueqiu
 
 - `scripts/sites/xueqiu/search.sh`
@@ -138,9 +224,11 @@ Current test commands:
 
 - `node scripts/test.mjs list`
 - `node scripts/test.mjs core`
+- `node scripts/test.mjs site baidu`
 - `node scripts/test.mjs site google`
 - `node scripts/test.mjs site reddit`
 - `node scripts/test.mjs site taoguba`
+- `node scripts/test.mjs site weixin-sogou`
 - `node scripts/test.mjs site x`
 - `node scripts/test.mjs site xueqiu`
 - `node scripts/test.mjs all`

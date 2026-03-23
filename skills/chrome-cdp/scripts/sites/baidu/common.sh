@@ -1,16 +1,13 @@
 #!/usr/bin/env bash
-# This file provides shared helpers for the chrome-cdp reddit.com workflows.
+# This file provides shared helpers for the chrome-cdp baidu.com workflows.
 # Input: shell arguments, environment variables, and cdp.mjs JSON/text output.
 # Output: resolved target prefixes, encoded URLs, and wrapper calls to cdp.mjs.
 # Public interface: require_cmd, url_encode, cdp_list_raw, cdp_eval,
-# cdp_evalraw, reddit_find_target, reddit_nav_fast, wait_for_url_contains,
-# wait_for_reddit_selector, and wait_for_reddit_text.
+# baidu_find_target, wait_for_url_contains, and wait_for_baidu_selector.
 #
-# The helpers keep search.sh and open-post.sh deterministic.
-# They reuse an existing Reddit tab instead of opening a new browser tab.
-# They use Page.navigate via evalraw because Reddit often keeps background
-# activity alive after navigation even when the visible page is already ready.
-# They rely on jq for JSON handling and URL encoding.
+# baidu_find_target prefers an existing baidu.com/s tab, then any
+# baidu.com tab, then falls back to the first available page tab.
+# This lets the search script run without requiring a pre-opened Baidu tab.
 # Failures are printed to stderr and exit non-zero.
 # Source this file from sibling scripts; it is not intended to run directly.
 
@@ -45,13 +42,7 @@ cdp_eval() {
   cdp eval "$target" "$expr"
 }
 
-cdp_evalraw() {
-  local target="$1"
-  shift
-  cdp evalraw "$target" "$@" >/dev/null
-}
-
-reddit_find_target() {
+baidu_find_target() {
   local preferred="${1:-}"
   if [[ -n "$preferred" ]]; then
     printf '%s\n' "$preferred"
@@ -62,21 +53,12 @@ reddit_find_target() {
   pages="$(cdp_list_raw)"
   jq -r '
     map(select(.type == "page"))
-    | map(select(.url | test("^https://www\\.reddit\\.com/")))
-    | (map(select(.url | test("^https://www\\.reddit\\.com/search"))) +
-       map(select(.url | test("^https://www\\.reddit\\.com/r/[^/]+/comments/"))) +
+    | (map(select(.url | test("^https://www\\.baidu\\.com/s"))) +
+       map(select(.url | test("^https://www\\.baidu\\.com/"))) +
        .)
     | unique_by(.targetId)
     | .[0].targetId // empty
   ' <<<"$pages"
-}
-
-reddit_nav_fast() {
-  local target="$1"
-  local url="$2"
-  local params
-  params="$(jq -nc --arg url "$url" '{url: $url}')"
-  cdp evalraw "$target" "Page.navigate" "$params" >/dev/null 2>&1 || true
 }
 
 wait_for_url_contains() {
@@ -99,42 +81,22 @@ EOF
   cdp_eval "$target" "$expr" >/dev/null
 }
 
-wait_for_reddit_selector() {
+wait_for_baidu_selector() {
   local target="$1"
   local selector="$2"
-  local limit="${3:-12000}"
+  local limit="${3:-15000}"
   local expr
   read -r -d '' expr <<'EOF' || true
 (async () => {
   const deadline = Date.now() + LIMIT_MS;
   while (Date.now() < deadline) {
     if (document.querySelector(SELECTOR)) return 'READY';
-    await new Promise(resolve => setTimeout(resolve, 250));
+    await new Promise(resolve => setTimeout(resolve, 300));
   }
-  throw new Error('Timed out waiting for Reddit selector');
+  throw new Error('Timed out waiting for Baidu selector');
 })()
 EOF
   expr="${expr/LIMIT_MS/${limit}}"
   expr="${expr/SELECTOR/$(jq -Rn --arg v "$selector" '$v')}"
-  cdp_eval "$target" "$expr" >/dev/null
-}
-
-wait_for_reddit_text() {
-  local target="$1"
-  local needle="$2"
-  local limit="${3:-12000}"
-  local expr
-  read -r -d '' expr <<'EOF' || true
-(async () => {
-  const deadline = Date.now() + LIMIT_MS;
-  while (Date.now() < deadline) {
-    if ((document.body?.innerText || '').includes(NEEDLE)) return 'READY';
-    await new Promise(resolve => setTimeout(resolve, 250));
-  }
-  throw new Error('Timed out waiting for Reddit text');
-})()
-EOF
-  expr="${expr/LIMIT_MS/${limit}}"
-  expr="${expr/NEEDLE/$(jq -Rn --arg v "$needle" '$v')}"
   cdp_eval "$target" "$expr" >/dev/null
 }

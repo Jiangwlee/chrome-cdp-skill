@@ -37,7 +37,7 @@ function usage() {
     '  node skills/chrome-cdp/scripts/test.mjs list',
     '  node skills/chrome-cdp/scripts/test.mjs all [--json] [--fail-fast]',
     '  node skills/chrome-cdp/scripts/test.mjs core [--json] [--fail-fast]',
-    '  node skills/chrome-cdp/scripts/test.mjs site <google|kdocs|reddit|taoguba|x|xueqiu> [--json] [--fail-fast]',
+    '  node skills/chrome-cdp/scripts/test.mjs site <baidu|google|kdocs|reddit|taoguba|weixin-sogou|x|xueqiu> [--json] [--fail-fast]',
   ].join('\n'));
   process.exit(1);
 }
@@ -194,6 +194,8 @@ const X_QUERY = process.env.CDP_TEST_X_QUERY || 'openai';
 const XUEQIU_QUERY = process.env.CDP_TEST_XUEQIU_QUERY || '腾讯';
 const XUEQIU_STOCK = process.env.CDP_TEST_XUEQIU_STOCK || '00700';
 const GOOGLE_QUERY = process.env.CDP_TEST_GOOGLE_QUERY || 'openai';
+const BAIDU_QUERY = process.env.CDP_TEST_BAIDU_QUERY || '百度';
+const SOGOU_QUERY = process.env.CDP_TEST_SOGOU_QUERY || 'Python';
 const TAOGUBA_HOURS = envInt('CDP_TEST_TAOGUBA_HOURS', 168);
 const TAOGUBA_LIMIT = envInt('CDP_TEST_TAOGUBA_LIMIT', 5);
 
@@ -239,6 +241,55 @@ const tests = [
         commands: [result.command],
         stdout_excerpt: result.stdout.slice(0, 400),
         data: { result_count: value.length, first_url: value[0].url },
+      };
+    },
+  },
+  {
+    name: 'site.baidu.search.smoke',
+    scope: 'site',
+    site: 'baidu',
+    workflow: 'search',
+    level: 'smoke',
+    setupHint: 'Make sure at least one Chrome tab is open before running Baidu smoke tests.',
+    failHint: 'Check scripts/sites/baidu/search.sh and references/sites/baidu/workflows.md.',
+    async run() {
+      const script = resolve(SITE_SCRIPTS_DIR, 'baidu', 'search.sh');
+      const { result, value } = await runJsonCommand('bash', [script, BAIDU_QUERY, '5'], 60000);
+      assert(Array.isArray(value), 'baidu search should return a JSON array');
+      assert(value.length > 0, 'baidu search should return at least one result');
+      assert(typeof value[0]?.url === 'string' && value[0].url.startsWith('http'), 'baidu search result should include a valid URL');
+      assert(typeof value[0]?.title === 'string' && value[0].title.length > 0, 'baidu search result should include a non-empty title');
+      return {
+        status: 'pass',
+        command: result.command,
+        commands: [result.command],
+        stdout_excerpt: result.stdout.slice(0, 400),
+        data: { result_count: value.length, first_url: value[0].url },
+      };
+    },
+  },
+  {
+    name: 'site.weixin-sogou.search.smoke',
+    scope: 'site',
+    site: 'weixin-sogou',
+    workflow: 'search',
+    level: 'smoke',
+    setupHint: 'Make sure at least one Chrome tab is open before running Weixin-Sogou smoke tests.',
+    failHint: 'Check scripts/sites/weixin-sogou/search.sh and references/sites/weixin-sogou/workflows.md.',
+    async run() {
+      const script = resolve(SITE_SCRIPTS_DIR, 'weixin-sogou', 'search.sh');
+      const { result, value } = await runJsonCommand('bash', [script, SOGOU_QUERY, '5'], 60000);
+      assert(Array.isArray(value), 'weixin-sogou search should return a JSON array');
+      assert(value.length > 0, 'weixin-sogou search should return at least one result');
+      assert(typeof value[0]?.link === 'string' && value[0].link.includes('weixin.sogou.com'), 'weixin-sogou search result should include a sogou link');
+      assert(typeof value[0]?.title === 'string' && value[0].title.length > 0, 'weixin-sogou search result should include a non-empty title');
+      assert(typeof value[0]?.account === 'string', 'weixin-sogou search result should include an account field');
+      return {
+        status: 'pass',
+        command: result.command,
+        commands: [result.command],
+        stdout_excerpt: result.stdout.slice(0, 400),
+        data: { result_count: value.length, first_title: value[0].title, first_account: value[0].account },
       };
     },
   },
