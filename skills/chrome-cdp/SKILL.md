@@ -11,12 +11,14 @@ This skill is no longer just a thin browser utility. It is the core browser laye
 
 ## Skill Model
 
-Treat this skill as two layers:
+Treat this skill as three layers:
 
 - `core`
   Chrome connection, tab targeting, navigation, extraction primitives, and SOP development guidance.
+- `core/common.sh`
+  Shared shell helpers for all site workflows: tab lifecycle management (`find_or_create_tab`), URL encoding, and CDP wrappers.
 - `sites`
-  Repeatable workflows for specific websites such as `reddit.com`, `tgb.cn`, and `x.com`.
+  Repeatable workflows for specific websites such as `reddit.com`, `tgb.cn`, and `x.com`. Each site uses `core/common.sh` for tab management.
 
 This repository uses a `core + sites + tests` layout.
 
@@ -68,77 +70,49 @@ Load site references for website-specific workflows:
 - Expect one Chrome "Allow debugging" prompt per tab daemon on first access.
 - Keep browser primitives in the core layer. Do not bury general CDP logic inside a site-specific workflow unless the behavior is truly site-bound.
 
-## ⚠️ Critical Constraint: No Concurrent CDP Calls
+## ✅ Automatic Tab Management
 
-**NEVER run multiple CDP scripts in parallel.** The Chrome DevTools Protocol (CDP) uses a single WebSocket connection per session, and concurrent calls will cause race conditions, connection errors, and unpredictable failures.
+Each site workflow automatically manages its own Chrome tab:
 
-### Why Concurrent Calls Fail
+1. **Find existing tab**: Each script looks for an existing tab of its domain (e.g., `baidu.com`)
+2. **Create if missing**: If no matching tab exists, the script automatically creates a new one
+3. **Isolation**: Different sites never share the same tab, preventing navigation conflicts
 
-```
-Script A ──┐
-Script B ──┼──► cdp.mjs ──► Chrome WebSocket ──► Tab X
-Script C ──┘         ↑              ↑
-                     └──── Race ────┘
-```
-
-| Conflict | Result |
-|----------|--------|
-| WebSocket handshake collision | `tool error` / connection timeout |
-| Tab navigation race | Last `nav` overwrites previous, scripts see wrong page |
-| DOM state corruption | Script waits for selector on wrong page, times out |
-
-### Correct Usage: Sequential Execution
+This means you **no longer need to specify target tabs manually** for normal usage:
 
 ```bash
-# ✗ WRONG: Parallel execution (causes race conditions)
-bash scripts/sites/baidu/search.sh "query1" 5 &
-bash scripts/sites/google/search.sh "query2" 5 &
-bash scripts/sites/weixin-sogou/search.sh "query3" 5 &
-
-# ✓ CORRECT: Sequential execution with delay
-bash scripts/sites/baidu/search.sh "query1" 5
-sleep 2
-bash scripts/sites/google/search.sh "query2" 5
-sleep 2
-bash scripts/sites/weixin-sogou/search.sh "query3" 5
+# ✓ Automatic tab management - each site uses its own tab
+bash scripts/sites/baidu/search.sh "query" 5      # Uses/creates baidu tab
+bash scripts/sites/google/search.sh "query" 5     # Uses/creates google tab  
+bash scripts/sites/weixin-sogou/search.sh "query" 5  # Uses/creates sogou tab
 ```
 
-### Multi-Site Search Pattern
+### Shared Core Library
 
-When searching multiple sites for the same topic, always serialize calls:
+All site scripts source the shared helpers from `scripts/core/common.sh`:
+
+- `find_or_create_tab <homepage_url> [domain]` - Find existing tab or create new one
+- `create_tab <homepage_url>` - Create and navigate to a new tab
+- `url_encode <string>` - URL encode strings
+- `cdp_eval <target> <expression>` - Evaluate JavaScript in tab
+
+Site-specific `common.sh` files (e.g., `scripts/sites/baidu/common.sh`) are now thin wrappers that call these shared functions with domain-specific parameters.
+
+## ⚠️ Concurrent Execution Guidelines
+
+**Same site**: Never run multiple scripts for the same site in parallel on the same tab. They will race for navigation.
+
+**Different sites**: Safe to run in parallel because each uses its own dedicated tab:
 
 ```bash
-#!/bin/bash
-# multi-site-search.sh - Sequential multi-site search
-
-QUERY="电力板块 风险"
-TARGET="8A8D27FF"  # Use a stable tab
-
-echo "=== Baidu ==="
-bash scripts/sites/baidu/search.sh "$QUERY" 5 "$TARGET"
-sleep 2
-
-echo "=== Google ==="
-bash scripts/sites/google/search.sh "$QUERY" 5 "$TARGET"
-sleep 2
-
-echo "=== Weixin-Sogou ==="
-bash scripts/sites/weixin-sogou/search.sh "$QUERY" 5 "$TARGET"
+# ✓ SAFE: Different sites in parallel
+bash scripts/sites/baidu/search.sh "query" 5 &
+bash scripts/sites/google/search.sh "query" 5 &
+bash scripts/sites/weixin-sogou/search.sh "query" 5 &
+wait
 ```
 
-### If You Must Parallelize
-
-Use **different target tabs** for each concurrent call:
-
-```bash
-# Each script uses a different Chrome tab
-bash scripts/sites/baidu/search.sh "query1" 5 FDDF7F05 &   # Tab 1
-bash scripts/sites/google/search.sh "query2" 5 8A8D27FF &  # Tab 2
-bash scripts/sites/weixin-sogou/search.sh "query3" 5 B67F18DE &  # Tab 3
-wait  # Wait for all background jobs
-```
-
-**Note**: Even with different tabs, excessive concurrent connections may still overwhelm Chrome's DevTools server. Prefer sequential execution when possible.
+**CDP connection limit**: While different sites are isolated by tab, they still share Chrome's DevTools WebSocket server. Avoid launching too many scripts simultaneously (more than ~5) to prevent connection timeouts.
 
 ## Main Entrypoint
 

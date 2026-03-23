@@ -123,7 +123,7 @@ Examples from this skill:
 For a new site, add files in this order:
 
 1. `references/sites/<site>/workflows.md`
-2. `scripts/sites/<site>/common.sh`
+2. `scripts/sites/<site>/common.sh` (uses `scripts/core/common.sh`)
 3. one or more workflow scripts
 4. index links in `SKILL.md` and `references/core/index.md`
 
@@ -138,10 +138,10 @@ scripts/sites/<site>/open-post.sh
 
 The helper script should own:
 
-- target selection
+- **target selection** (via `find_or_create_tab` from `core/common.sh`)
 - tolerant navigation
 - readiness checks
-- tiny wrappers around `cdp.mjs`
+- site-specific CDP wrappers
 
 The workflow scripts should own:
 
@@ -149,6 +149,32 @@ The workflow scripts should own:
 - CLI arguments
 - default limits/windows
 - output schema
+
+#### Using the Shared Core Library
+
+All site `common.sh` files should source the shared helpers:
+
+```bash
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/../../core/common.sh"
+```
+
+Then implement `*_find_target()` using `find_or_create_tab`:
+
+```bash
+example_find_target() {
+  local preferred="${1:-}"
+  if [[ -n "$preferred" ]]; then
+    printf '%s\n' "$preferred"
+    return 0
+  fi
+  
+  # Automatically finds existing example.com tab or creates new one
+  find_or_create_tab "https://www.example.com" "example.com"
+}
+```
+
+This provides automatic tab lifecycle management without code duplication.
 
 ### 6. Keep output schemas explicit
 
@@ -181,21 +207,13 @@ Good examples:
 If the schema is going to be used repeatedly, document it in the corresponding
 workflow reference file.
 
-### 7. Validate in serial, not in parallel, when sharing one tab
+### 7. Validate with isolation
 
-This matters a lot.
+Since each site workflow now manages its own dedicated tab (via `find_or_create_tab`), race conditions between different sites are eliminated. However, be aware of these constraints:
 
-If two scripts reuse the same browser tab and both navigate it, they can race.
-That produces false failures such as:
+**Same-site serialization**: Multiple scripts for the same site will share the same tab (by design). If you must run multiple searches for one site in parallel, stagger them with delays.
 
-- `ERR_ABORTED`
-- URL wait timeouts
-- missing content because another workflow already changed the page
-
-Rule:
-
-- parallelize read-only inspection
-- serialize workflows that reuse the same site tab
+**CDP connection pool**: Chrome's DevTools server has limits. Avoid launching more than ~5 concurrent scripts even across different sites to prevent WebSocket connection timeouts.
 
 ### 8. Debug with the smallest possible probe
 

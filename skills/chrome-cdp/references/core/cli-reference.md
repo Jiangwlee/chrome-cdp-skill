@@ -50,6 +50,8 @@ is the CLI command list below and the target-prefix workflow.
   Sends a raw CDP command with optional JSON params.
 - `open [url]`
   Opens a new tab and may trigger a new Chrome approval prompt.
+- `close <target>`
+  Closes a specific browser tab by target prefix.
 - `stop [target]`
   Stops one tab daemon or all daemons.
 

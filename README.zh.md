@@ -36,6 +36,8 @@ chrome-cdp-skill/
       SKILL.md
       scripts/
         cdp.mjs
+        core/
+          common.sh       ← 共享核心库（Tab 管理、URL 编码等）
         sites/
         test.mjs
       references/
@@ -69,6 +71,8 @@ chrome-cdp-skill/
 ## 当前支持的工作流
 
 核心浏览器访问通过 `skills/chrome-cdp/scripts/cdp.mjs` 路由。
+
+所有站点工作流现已支持**自动 Tab 管理**：每个脚本会自动查找对应域名的现有标签页，若不存在则自动创建。不同站点使用独立的标签页，可安全并行执行。
 
 内置工作流脚本包括：
 

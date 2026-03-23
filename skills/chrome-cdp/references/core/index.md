@@ -15,6 +15,8 @@ specific reference file to load and the `scripts/cdp.mjs` command to run.
 
 - [cli-reference.md](cli-reference.md)
   Command semantics, workflow guidance, and examples for the CLI implemented in [../../scripts/cdp.mjs](../../scripts/cdp.mjs).
+- [common-library.md](common-library.md)
+  Shared shell library (`scripts/core/common.sh`) providing automatic tab lifecycle management for all site workflows.
 - [troubleshooting.md](troubleshooting.md)
   Failure modes for remote debugging, stale browser websocket paths, daemon startup, and tab targeting.
 - [../sites/google/workflows.md](../sites/google/workflows.md)
@@ -43,6 +45,7 @@ specific reference file to load and the `scripts/cdp.mjs` command to run.
 ## Script entrypoint
 
 - Primary script: [../../scripts/cdp.mjs](../../scripts/cdp.mjs)
+- Shared library: [../../scripts/core/common.sh](../../scripts/core/common.sh)
 - Workflow scripts:
   [../../scripts/sites/google/search.sh](../../scripts/sites/google/search.sh),
   [../../scripts/sites/google/common.sh](../../scripts/sites/google/common.sh),

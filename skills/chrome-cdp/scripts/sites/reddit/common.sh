@@ -7,7 +7,7 @@
 # wait_for_reddit_selector, and wait_for_reddit_text.
 #
 # The helpers keep search.sh and open-post.sh deterministic.
-# They reuse an existing Reddit tab instead of opening a new browser tab.
+# reddit_find_target finds an existing reddit.com tab or creates a new one.
 # They use Page.navigate via evalraw because Reddit often keeps background
 # activity alive after navigation even when the visible page is already ready.
 # They rely on jq for JSON handling and URL encoding.
@@ -17,39 +17,11 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CDP_SCRIPT="${SCRIPT_DIR}/../../cdp.mjs"
 
-require_cmd() {
-  local cmd="$1"
-  if ! command -v "$cmd" >/dev/null 2>&1; then
-    printf 'missing required command: %s\n' "$cmd" >&2
-    exit 1
-  fi
-}
+# shellcheck source=../../core/common.sh
+source "${SCRIPT_DIR}/../../core/common.sh"
 
-url_encode() {
-  jq -nr --arg v "$1" '$v|@uri'
-}
-
-cdp() {
-  "$CDP_SCRIPT" "$@"
-}
-
-cdp_list_raw() {
-  cdp list_raw
-}
-
-cdp_eval() {
-  local target="$1"
-  local expr="$2"
-  cdp eval "$target" "$expr"
-}
-
-cdp_evalraw() {
-  local target="$1"
-  shift
-  cdp evalraw "$target" "$@" >/dev/null
-}
+require_cmd jq
 
 reddit_find_target() {
   local preferred="${1:-}"
@@ -58,17 +30,7 @@ reddit_find_target() {
     return 0
   fi
 
-  local pages
-  pages="$(cdp_list_raw)"
-  jq -r '
-    map(select(.type == "page"))
-    | map(select(.url | test("^https://www\\.reddit\\.com/")))
-    | (map(select(.url | test("^https://www\\.reddit\\.com/search"))) +
-       map(select(.url | test("^https://www\\.reddit\\.com/r/[^/]+/comments/"))) +
-       .)
-    | unique_by(.targetId)
-    | .[0].targetId // empty
-  ' <<<"$pages"
+  find_or_create_tab "https://www.reddit.com" "reddit.com"
 }
 
 reddit_nav_fast() {
@@ -95,8 +57,7 @@ wait_for_url_contains() {
 })()
 EOF
   expr="${expr/LIMIT_MS/${limit}}"
-  expr="${expr/NEEDLE/$(jq -Rn --arg v "$needle" '$v')}"
-  cdp_eval "$target" "$expr" >/dev/null
+  expr="${expr/NEEDLE/$(jq -Rn --arg v "$needle" '$v')}"  cdp_eval "$target" "$expr" >/dev/null
 }
 
 wait_for_reddit_selector() {
@@ -115,8 +76,7 @@ wait_for_reddit_selector() {
 })()
 EOF
   expr="${expr/LIMIT_MS/${limit}}"
-  expr="${expr/SELECTOR/$(jq -Rn --arg v "$selector" '$v')}"
-  cdp_eval "$target" "$expr" >/dev/null
+  expr="${expr/SELECTOR/$(jq -Rn --arg v "$selector" '$v')}"  cdp_eval "$target" "$expr" >/dev/null
 }
 
 wait_for_reddit_text() {
@@ -135,6 +95,5 @@ wait_for_reddit_text() {
 })()
 EOF
   expr="${expr/LIMIT_MS/${limit}}"
-  expr="${expr/NEEDLE/$(jq -Rn --arg v "$needle" '$v')}"
-  cdp_eval "$target" "$expr" >/dev/null
+  expr="${expr/NEEDLE/$(jq -Rn --arg v "$needle" '$v')}"  cdp_eval "$target" "$expr" >/dev/null
 }

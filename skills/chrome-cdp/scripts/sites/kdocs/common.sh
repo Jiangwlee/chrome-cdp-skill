@@ -20,7 +20,9 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CDP_SCRIPT="${SCRIPT_DIR}/../../cdp.mjs"
+
+# shellcheck source=../../core/common.sh
+source "${SCRIPT_DIR}/../../core/common.sh"
 
 require_cmd() {
   local cmd="$1"
@@ -34,28 +36,10 @@ json_string() {
   jq -Rn --arg v "$1" '$v'
 }
 
-url_encode() {
-  jq -nr --arg v "$1" '$v|@uri'
-}
-
-cdp() {
-  "$CDP_SCRIPT" "$@"
-}
-
-cdp_list_raw() {
-  cdp list_raw
-}
-
 cdp_nav() {
   local target="$1"
   local url="$2"
   cdp nav "$target" "$url" >/dev/null
-}
-
-cdp_eval() {
-  local target="$1"
-  local expr="$2"
-  cdp eval "$target" "$expr"
 }
 
 kdocs_find_main_tab() {
@@ -64,33 +48,42 @@ kdocs_find_main_tab() {
     printf '%s\n' "$preferred"
     return 0
   fi
-  local pages
+  
+  local pages target
   pages="$(cdp_list_raw)"
-  local target
+  
+  # Find existing kdocs tab (preserve priority: latest page > any kdocs page not a doc)
   target="$(jq -r '
-    map(select(.type == "page"))
-    | map(select(.url | test("^https://365\\.kdocs\\.cn/")))
-    | (
-        map(select(.url | test("^https://365\\.kdocs\\.cn/(latest|$)")))
-        + map(select(.url | (test("^https://365\\.kdocs\\.cn/l/") | not)))
-      )
-    | unique_by(.targetId)
-    | .[0].targetId // empty
+    map(select(.type == "page")) as $all
+    | ($all | map(select(.url | test("^https://365\\.kdocs\\.cn/")))) as $kdocs_tabs
+    | ($kdocs_tabs | map(select(.url | test("^https://365\\.kdocs\\.cn/(latest|$)")))) as $latest_tabs
+    | ($kdocs_tabs | map(select(.url | (test("^https://365\\.kdocs\\.cn/l/") | not)))) as $non_doc_tabs
+    | if ($latest_tabs | length) > 0 then $latest_tabs
+        elif ($non_doc_tabs | length) > 0 then $non_doc_tabs
+        else $kdocs_tabs end
+    | [.[].targetId]
+    | reduce .[] as $id ([]; if index($id) then . else . + [$id] end)
+    | .[0] // empty
   ' <<<"$pages")"
+  
   if [[ -n "$target" ]]; then
     printf '%s\n' "$target"
     return 0
   fi
 
+  # Create new tab and wait for it to appear
   cdp open "https://365.kdocs.cn/" >/dev/null 2>/dev/null || true
   for _ in $(seq 1 40); do
     sleep 0.5
     pages="$(cdp_list_raw)"
     target="$(jq -r '
-      map(select(.type == "page"))
-      | map(select(.url | test("^https://365\\.kdocs\\.cn/")))
-      | map(select(.url | (test("^https://365\\.kdocs\\.cn/l/") | not)))
-      | .[0].targetId // empty
+      map(select(.type == "page")) as $all
+      | ($all | map(select(.url | test("^https://365\\.kdocs\\.cn/")))) as $kdocs_tabs
+      | ($kdocs_tabs | map(select(.url | (test("^https://365\\.kdocs\\.cn/l/") | not)))) as $non_doc_tabs
+      | if ($non_doc_tabs | length) > 0 then $non_doc_tabs else $kdocs_tabs end
+      | [.[].targetId]
+      | reduce .[] as $id ([]; if index($id) then . else . + [$id] end)
+      | .[0] // empty
     ' <<<"$pages")"
     if [[ -n "$target" ]]; then
       printf '%s\n' "$target"

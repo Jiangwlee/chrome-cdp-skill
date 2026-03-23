@@ -7,7 +7,7 @@
 # wait_for_taoguba_selector.
 #
 # The helpers keep Taoguba workflow scripts small and deterministic.
-# They reuse an existing Taoguba tab instead of opening a new browser tab.
+# taoguba_find_target finds an existing taoguba.com tab or creates a new one.
 # They use Page.navigate but tolerate timeout noise from pages that continue
 # background loading after the visible content is already ready.
 # They rely on jq for JSON handling.
@@ -17,50 +17,20 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CDP_SCRIPT="${SCRIPT_DIR}/../../cdp.mjs"
 
-require_cmd() {
-  local cmd="$1"
-  if ! command -v "$cmd" >/dev/null 2>&1; then
-    printf 'missing required command: %s\n' "$cmd" >&2
-    exit 1
-  fi
-}
+# shellcheck source=../../core/common.sh
+source "${SCRIPT_DIR}/../../core/common.sh"
 
-cdp() {
-  "$CDP_SCRIPT" "$@"
-}
-
-cdp_list_raw() {
-  cdp list_raw
-}
-
-cdp_eval() {
-  local target="$1"
-  local expr="$2"
-  cdp eval "$target" "$expr"
-}
+require_cmd jq
 
 taoguba_find_target() {
   local preferred="${1:-}"
-  local pattern="${2:-}"
   if [[ -n "$preferred" ]]; then
     printf '%s\n' "$preferred"
     return 0
   fi
 
-  local pages
-  pages="$(cdp_list_raw)"
-  jq -r --arg pattern "$pattern" '
-    map(select(.type == "page"))
-    | map(select(.url | test("^https://www\\.tgb\\.cn/")))
-    | if $pattern != "" then
-        (map(select(.url | test($pattern))) + .)
-      else .
-      end
-    | unique_by(.targetId)
-    | .[0].targetId // empty
-  ' <<<"$pages"
+  find_or_create_tab "https://www.tgb.cn" "tgb.cn"
 }
 
 taoguba_nav_fast() {
@@ -87,8 +57,7 @@ wait_for_url_contains() {
 })()
 EOF
   expr="${expr/LIMIT_MS/${limit}}"
-  expr="${expr/NEEDLE/$(jq -Rn --arg v "$needle" '$v')}"
-  cdp_eval "$target" "$expr" >/dev/null
+  expr="${expr/NEEDLE/$(jq -Rn --arg v "$needle" '$v')}"  cdp_eval "$target" "$expr" >/dev/null
 }
 
 wait_for_taoguba_text() {
@@ -107,8 +76,7 @@ wait_for_taoguba_text() {
 })()
 EOF
   expr="${expr/LIMIT_MS/${limit}}"
-  expr="${expr/NEEDLE/$(jq -Rn --arg v "$needle" '$v')}"
-  cdp_eval "$target" "$expr" >/dev/null
+  expr="${expr/NEEDLE/$(jq -Rn --arg v "$needle" '$v')}"  cdp_eval "$target" "$expr" >/dev/null
 }
 
 wait_for_taoguba_selector() {
@@ -127,6 +95,5 @@ wait_for_taoguba_selector() {
 })()
 EOF
   expr="${expr/LIMIT_MS/${limit}}"
-  expr="${expr/SELECTOR/$(jq -Rn --arg v "$selector" '$v')}"
-  cdp_eval "$target" "$expr" >/dev/null
+  expr="${expr/SELECTOR/$(jq -Rn --arg v "$selector" '$v')}"  cdp_eval "$target" "$expr" >/dev/null
 }

@@ -5,42 +5,18 @@
 # Public interface: require_cmd, url_encode, cdp_list_raw, cdp_eval,
 # sogou_find_target, wait_for_url_contains, and wait_for_sogou_selector.
 #
-# sogou_find_target prefers an existing weixin.sogou.com/weixin tab, then any
-# weixin.sogou.com tab, then falls back to the first available page tab.
-# This lets the search script run without requiring a pre-opened Sogou tab.
+# sogou_find_target finds an existing weixin.sogou.com tab or creates a new one.
 # Failures are printed to stderr and exit non-zero.
 # Source this file from sibling scripts; it is not intended to run directly.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CDP_SCRIPT="${SCRIPT_DIR}/../../cdp.mjs"
 
-require_cmd() {
-  local cmd="$1"
-  if ! command -v "$cmd" >/dev/null 2>&1; then
-    printf 'missing required command: %s\n' "$cmd" >&2
-    exit 1
-  fi
-}
+# shellcheck source=../../core/common.sh
+source "${SCRIPT_DIR}/../../core/common.sh"
 
-url_encode() {
-  jq -nr --arg v "$1" '$v|@uri'
-}
-
-cdp() {
-  "$CDP_SCRIPT" "$@"
-}
-
-cdp_list_raw() {
-  cdp list_raw
-}
-
-cdp_eval() {
-  local target="$1"
-  local expr="$2"
-  cdp eval "$target" "$expr"
-}
+require_cmd jq
 
 sogou_find_target() {
   local preferred="${1:-}"
@@ -49,16 +25,7 @@ sogou_find_target() {
     return 0
   fi
 
-  local pages
-  pages="$(cdp_list_raw)"
-  jq -r '
-    map(select(.type == "page"))
-    | (map(select(.url | test("^https://weixin\\.sogou\\.com/weixin"))) +
-       map(select(.url | test("^https://weixin\\.sogou\\.com/"))) +
-       .)
-    | unique_by(.targetId)
-    | .[0].targetId // empty
-  ' <<<"$pages"
+  find_or_create_tab "https://weixin.sogou.com" "weixin.sogou.com"
 }
 
 wait_for_url_contains() {
