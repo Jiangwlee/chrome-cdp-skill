@@ -28,26 +28,29 @@
 
 ### 背景
 
-DDG Lite (`https://lite.duckduckgo.com/lite/`) 是纯 HTML 页面，可用 curl + User-Agent 访问，无需 CDP。结果 URL 以 `//duckduckgo.com/l/?uddg=<encoded_url>` 格式出现，需 URL decode。用 python3 解析 HTML，输出与 google/search.sh 一致的 `[{title, snippet, url}]` JSON。
+使用 `duckduckgo-search` Python 包（通过 `uv run --with duckduckgo-search` 调用，无需预装或创建 venv）搜索 DuckDuckGo，输出与 google/search.sh 一致的 `[{title, snippet, url}]` JSON。uv 会将包缓存在 `~/.cache/uv/`，对安装流程零影响。
 
-- [ ] **Step 1: 手动验证 DDG Lite 可访问性**
-
-```bash
-curl -s -A "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" \
-  "https://lite.duckduckgo.com/lite/?q=AI+agent+2025" | grep -c "result-link"
-```
-
-预期：输出一个 > 0 的数字（表示找到结果链接）。若输出 0 或报错，检查网络连通性。
-
-- [ ] **Step 2: 确认 HTML 结构**
+- [ ] **Step 1: 验证 uv 可用**
 
 ```bash
-curl -s -A "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" \
-  "https://lite.duckduckgo.com/lite/?q=AI+agent+2025" \
-  | grep -A2 'result-link\|result-snippet' | head -30
+uv --version
 ```
 
-预期：看到 `<a class="result-link"` 和 `<td class="result-snippet">` 标签，确认字段名。
+预期：打印版本号。若不存在，安装：`curl -LsSf https://astral.sh/uv/install.sh | sh`
+
+- [ ] **Step 2: 验证 duckduckgo-search 可用**
+
+```bash
+uv run --with duckduckgo-search python3 -c "
+from duckduckgo_search import DDGS
+with DDGS() as ddgs:
+    r = list(ddgs.text('AI agent 2025', max_results=3))
+print(len(r), 'results')
+print(r[0])
+"
+```
+
+预期：打印结果数量和第一条结果（含 title、href、body 字段）。
 
 - [ ] **Step 3: 创建脚本**
 
@@ -55,10 +58,10 @@ curl -s -A "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36" \
 mkdir -p skills/chrome-cdp/scripts/sites/duckduckgo
 cat > skills/chrome-cdp/scripts/sites/duckduckgo/search.sh << 'SCRIPT'
 #!/usr/bin/env bash
-# Search DuckDuckGo Lite and return top organic results.
+# Search DuckDuckGo and return top results via duckduckgo-search Python package.
 # Input: <query> [limit]
 # Output: JSON array [{title, snippet, url}], same format as google/search.sh.
-# Does not require a browser — uses curl against lite.duckduckgo.com.
+# Requires: uv (https://docs.astral.sh/uv/), no browser needed.
 # Errors are printed to stderr and the script exits non-zero.
 
 set -euo pipefail
@@ -76,41 +79,23 @@ LIMIT="${2:-20}"
 (( LIMIT > 0 )) || { printf 'limit must be greater than zero\n' >&2; exit 1; }
 (( LIMIT <= 20 )) || LIMIT=20
 
-command -v python3 >/dev/null 2>&1 || { printf 'python3 is required\n' >&2; exit 1; }
-command -v curl   >/dev/null 2>&1 || { printf 'curl is required\n' >&2; exit 1; }
+command -v uv >/dev/null 2>&1 || { printf 'uv is required: https://docs.astral.sh/uv/\n' >&2; exit 1; }
 
-ENCODED_QUERY="$(python3 -c "import sys, urllib.parse; print(urllib.parse.quote(sys.argv[1]))" "$QUERY")"
-
-HTML="$(curl -s --fail \
-  -A "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36" \
-  "https://lite.duckduckgo.com/lite/?q=${ENCODED_QUERY}")"
-
-python3 - "$LIMIT" <<'PYEOF'
-import sys, re, json
-from urllib.parse import unquote
+uv run --quiet --with duckduckgo-search python3 - "$LIMIT" "$QUERY" <<'PYEOF'
+import sys, json
+from duckduckgo_search import DDGS
 
 limit = int(sys.argv[1])
-html = sys.stdin.read()
+query = sys.argv[2]
 
-results = []
+with DDGS() as ddgs:
+    raw = list(ddgs.text(query, max_results=limit))
 
-# DDG Lite structure:
-#   <a class="result-link" href="//duckduckgo.com/l/?uddg=ENCODED_URL&...">Title</a>
-#   <td class="result-snippet">Snippet...</td>
-
-links  = re.findall(r'<a[^>]+class="result-link"[^>]+href="[^"]*[?&]uddg=([^&"]+)[^"]*"[^>]*>(.*?)</a>', html)
-snippets = re.findall(r'<td[^>]+class="result-snippet"[^>]*>(.*?)</td>', html, re.DOTALL)
-
-for i, ((url_enc, raw_title), raw_snippet) in enumerate(zip(links, snippets)):
-    if i >= limit:
-        break
-    url     = unquote(url_enc)
-    title   = re.sub(r'<[^>]+>', '', raw_title).strip()
-    snippet = re.sub(r'<[^>]+>', '', raw_snippet).replace('\n', ' ').strip()
-    snippet = re.sub(r'\s+', ' ', snippet)[:280]
-    if not url or not title:
-        continue
-    results.append({"title": title, "snippet": snippet, "url": url})
+results = [
+    {"title": r.get("title", ""), "snippet": r.get("body", "")[:280], "url": r.get("href", "")}
+    for r in raw
+    if r.get("href") and r.get("title")
+]
 
 print(json.dumps(results))
 PYEOF
@@ -124,7 +109,7 @@ chmod +x skills/chrome-cdp/scripts/sites/duckduckgo/search.sh
 bash skills/chrome-cdp/scripts/sites/duckduckgo/search.sh "AI agent frameworks 2025" 5
 ```
 
-预期：输出合法 JSON 数组，包含 `title`、`snippet`、`url` 字段，url 为真实网址（非 duckduckgo.com 域）。若输出 `[]`，重新检查 Step 2 里的 HTML 结构。
+预期：合法 JSON 数组，包含 `title`、`snippet`、`url` 字段，url 为真实网址。
 
 - [ ] **Step 5: 验证 limit 参数**
 
@@ -138,7 +123,7 @@ bash skills/chrome-cdp/scripts/sites/duckduckgo/search.sh "Python" 3 | python3 -
 
 ```bash
 git add skills/chrome-cdp/scripts/sites/duckduckgo/search.sh
-git commit -m "feat: add duckduckgo/search.sh curl-based search script"
+git commit -m "feat: add duckduckgo/search.sh via duckduckgo-search + uv run"
 ```
 
 ---
