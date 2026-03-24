@@ -101,25 +101,43 @@ read -r -d '' EXTRACT_EXPR <<'EOF' || true
 })()
 EOF
 
-RESULTS='[]'
-SEEN_URLS=''
+_google_search() {
+  local _RESULTS='[]'
 
-for START in 0 10 20; do
-  CURRENT_COUNT=$(printf '%s' "$RESULTS" | jq 'length')
-  (( CURRENT_COUNT >= LIMIT )) && break
+  for START in 0 10 20; do
+    local _CURRENT_COUNT
+    _CURRENT_COUNT=$(printf '%s' "$_RESULTS" | jq 'length')
+    (( _CURRENT_COUNT >= LIMIT )) && break
 
-  PAGE_URL="https://www.google.com/search?q=${ENCODED_QUERY}&num=10&start=${START}"
-  cdp nav "$TARGET" "$PAGE_URL" >/dev/null
-  wait_for_google_selector "$TARGET" '#rso'
+    local PAGE_URL="https://www.google.com/search?q=${ENCODED_QUERY}&num=10&start=${START}"
+    cdp nav "$TARGET" "$PAGE_URL" >/dev/null
+    wait_for_google_selector "$TARGET" '#rso'
 
-  PAGE_RESULTS="$(cdp_eval "$TARGET" "$EXTRACT_EXPR")"
+    local PAGE_RESULTS
+    PAGE_RESULTS="$(cdp_eval "$TARGET" "$EXTRACT_EXPR")"
 
-  # Merge: append page results, deduplicate by url, trim to limit
-  RESULTS=$(jq -n \
-    --argjson acc "$RESULTS" \
-    --argjson page "$PAGE_RESULTS" \
-    --argjson limit "$LIMIT" \
-    '($acc + $page) | unique_by(.url) | .[:$limit]')
-done
+    _RESULTS=$(jq -n \
+      --argjson acc "$_RESULTS" \
+      --argjson page "$PAGE_RESULTS" \
+      --argjson limit "$LIMIT" \
+      '($acc + $page) | unique_by(.url) | .[:$limit]')
+  done
+
+  printf '%s' "$_RESULTS"
+}
+
+# Try Google; fall back to DuckDuckGo if it fails or returns no results.
+DDG_SCRIPT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../duckduckgo/search.sh"
+
+if RESULTS="$(_google_search 2>/dev/null)"; then
+  COUNT=$(printf '%s' "$RESULTS" | jq 'length')
+  if (( COUNT == 0 )); then
+    printf 'google: no results, falling back to DuckDuckGo\n' >&2
+    RESULTS="$(bash "$DDG_SCRIPT" "$QUERY" "$LIMIT")"
+  fi
+else
+  printf 'google: search failed, falling back to DuckDuckGo\n' >&2
+  RESULTS="$(bash "$DDG_SCRIPT" "$QUERY" "$LIMIT")"
+fi
 
 printf '%s\n' "$RESULTS"
