@@ -33,12 +33,10 @@ reddit_find_target() {
   find_or_create_tab "https://www.reddit.com" "reddit.com"
 }
 
+# Use the unified cdp_nav from core/common.sh
+# reddit_nav_fast is kept for backward compatibility but now delegates to cdp_nav
 reddit_nav_fast() {
-  local target="$1"
-  local url="$2"
-  local params
-  params="$(jq -nc --arg url "$url" '{url: $url}')"
-  cdp evalraw "$target" "Page.navigate" "$params" >/dev/null 2>&1 || true
+  cdp_nav "$@"
 }
 
 wait_for_url_contains() {
@@ -57,7 +55,8 @@ wait_for_url_contains() {
 })()
 EOF
   expr="${expr/LIMIT_MS/${limit}}"
-  expr="${expr/NEEDLE/$(jq -Rn --arg v "$needle" '$v')}"  cdp_eval "$target" "$expr" >/dev/null
+  expr="${expr/NEEDLE/$(jq -Rn --arg v "$needle" '$v')}"
+  cdp_eval "$target" "$expr" >/dev/null
 }
 
 wait_for_reddit_selector() {
@@ -76,7 +75,8 @@ wait_for_reddit_selector() {
 })()
 EOF
   expr="${expr/LIMIT_MS/${limit}}"
-  expr="${expr/SELECTOR/$(jq -Rn --arg v "$selector" '$v')}"  cdp_eval "$target" "$expr" >/dev/null
+  expr="${expr/SELECTOR/$(jq -Rn --arg v "$selector" '$v')}"
+  cdp_eval "$target" "$expr" >/dev/null
 }
 
 wait_for_reddit_text() {
@@ -95,5 +95,6 @@ wait_for_reddit_text() {
 })()
 EOF
   expr="${expr/LIMIT_MS/${limit}}"
-  expr="${expr/NEEDLE/$(jq -Rn --arg v "$needle" '$v')}"  cdp_eval "$target" "$expr" >/dev/null
+  expr="${expr/NEEDLE/$(jq -Rn --arg v "$needle" '$v')}"
+  cdp_eval "$target" "$expr" >/dev/null
 }

@@ -28,6 +28,11 @@ baidu_find_target() {
   find_or_create_tab "https://www.baidu.com" "baidu.com"
 }
 
+# Use the unified cdp_nav from core/common.sh with fast mode (Baidu can timeout)
+baidu_nav_fast() {
+  cdp_nav "$1" "$2" "true"
+}
+
 wait_for_url_contains() {
   local target="$1"
   local needle="$2"

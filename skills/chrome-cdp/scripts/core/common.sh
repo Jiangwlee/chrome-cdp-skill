@@ -3,12 +3,13 @@
 # Input: environment variables and cdp.mjs JSON/text output.
 # Output: tab management, URL encoding, and CDP wrappers.
 # Public interface: find_or_create_tab, create_tab, find_existing_tab,
-# require_cmd, url_encode, cdp, cdp_list_raw, cdp_eval.
+# require_cmd, url_encode, cdp, cdp_list_raw, cdp_eval, cdp_nav.
 #
 # This file provides abstraction over tab lifecycle management:
 # - find_or_create_tab: finds existing site tab or creates new one
 # - find_existing_tab: finds tab matching URL patterns (with priority)
 # - create_tab: creates new tab and navigates to homepage
+# - cdp_nav: unified navigation function with optional fast mode
 #
 # Source this from site-specific common.sh files.
 # Requires: jq, and cdp.mjs in the parent directory.
@@ -47,6 +48,25 @@ cdp_eval() {
   local target="$1"
   local expr="$2"
   cdp eval "$target" "$expr"
+}
+
+# Navigate to URL using cdp.mjs nav command (waits for load completion)
+# Usage: cdp_nav <target> <url> [fast]
+#   If fast=true, uses evalraw Page.navigate without waiting for load
+cdp_nav() {
+  local target="$1"
+  local url="$2"
+  local fast="${3:-false}"
+  
+  if [[ "$fast" == "true" ]]; then
+    # Fast navigation: use Page.navigate without waiting for loadEventFired
+    local params
+    params="$(jq -nc --arg url "$url" '{url: $url}')"
+    cdp evalraw "$target" "Page.navigate" "$params" >/dev/null 2>&1 || true
+  else
+    # Normal navigation: wait for load completion
+    cdp nav "$target" "$url" >/dev/null
+  fi
 }
 
 # Create a new tab and navigate to homepage

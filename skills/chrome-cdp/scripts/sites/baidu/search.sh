@@ -114,9 +114,7 @@ EOF
 
 # Navigate to Baidu search
 SEARCH_URL="https://www.baidu.com/s?wd=${ENCODED_QUERY}&tn=baidu"
-# Use evalraw for Page.navigate without waiting for loadEventFired (Baidu can timeout)
-params="$(jq -nc --arg url "$SEARCH_URL" '{url: $url}')"
-cdp evalraw "$TARGET" "Page.navigate" "$params" > /dev/null 2>&1 || true
+baidu_nav_fast "$TARGET" "$SEARCH_URL"
 
 # Wait for URL to change and results to appear
 sleep 2

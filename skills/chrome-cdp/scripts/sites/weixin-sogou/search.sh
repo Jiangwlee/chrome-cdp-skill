@@ -77,8 +77,7 @@ EOF
 
 # Navigate to Sogou Weixin search
 SEARCH_URL="https://weixin.sogou.com/weixin?query=${ENCODED_QUERY}&type=2&page=1&ie=utf8"
-params="$(jq -nc --arg url "$SEARCH_URL" '{url: $url}')"
-cdp evalraw "$TARGET" "Page.navigate" "$params" > /dev/null 2>&1 || true
+sogou_nav_fast "$TARGET" "$SEARCH_URL"
 
 # Wait for URL to change and results to appear
 sleep 2

@@ -29,12 +29,10 @@ google_find_target() {
   find_or_create_tab "https://www.google.com" "google.com"
 }
 
+# Use the unified cdp_nav from core/common.sh
+# google_nav_fast is kept for backward compatibility but now delegates to cdp_nav
 google_nav_fast() {
-  local target="$1"
-  local url="$2"
-  local params
-  params="$(jq -nc --arg url "$url" '{url: $url}')"
-  cdp evalraw "$target" "Page.navigate" "$params" >/dev/null 2>&1 || true
+  cdp_nav "$@"
 }
 
 wait_for_url_contains() {

@@ -74,12 +74,10 @@ xueqiu_find_target() {
   find_or_create_tab "https://xueqiu.com" "xueqiu.com"
 }
 
+# Use the unified cdp_nav from core/common.sh
+# xueqiu_nav_fast is kept for backward compatibility but now delegates to cdp_nav
 xueqiu_nav_fast() {
-  local target="$1"
-  local url="$2"
-  local expr
-  expr="$(printf 'location.href = %s; "NAVIGATING"' "$(json_string "$url")")"
-  cdp_eval "$target" "$expr" >/dev/null || true
+  cdp_nav "$@"
 }
 
 wait_for_url_contains() {

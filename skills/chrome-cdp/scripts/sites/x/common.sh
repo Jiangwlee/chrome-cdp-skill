@@ -36,6 +36,12 @@ x_find_target() {
   find_or_create_tab "https://x.com" "x.com"
 }
 
+cdp_nav() {
+  local target="$1"
+  local url="$2"
+  cdp nav "$target" "$url" >/dev/null
+}
+
 wait_for_x_article() {
   local target="$1"
   local limit="${2:-10000}"
