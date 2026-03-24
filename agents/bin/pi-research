@@ -1,37 +1,51 @@
 #!/usr/bin/env bash
 # pi-research [options] <topic>
-# Research a topic across X and Reddit with a minimum of 10 rounds.
+# Research a topic across Google, X, Reddit, and GitHub with iterative rounds.
 set -euo pipefail
 
 usage() {
-  cat <<'EOF'
+  cat <<'USAGE'
 Usage: pi-research [options] <topic>
 
-Research a topic across X and Reddit using a minimum of 10 iterative
-search rounds, then return a structured research report.
+Research a topic across Google, X, Reddit, and GitHub using iterative
+search rounds, then return a structured per-platform research report.
 
 Arguments:
   <topic>     The research topic or question
 
 Options:
+  --quick     Simple topic: at least 3 rounds
+  --deep      Deep research: at least 10 rounds (thorough multi-platform)
   -v          Verbose: show tool calls and LLM output in real time
   --help      Show this help
-EOF
+
+Default (no depth flag): at least 5 rounds.
+USAGE
 }
 
 VERBOSE=false
+DEPTH="medium"
 ARGS=()
+
 for arg in "$@"; do
   case "$arg" in
-    --help) usage; exit 0 ;;
-    -v)     VERBOSE=true ;;
-    *)      ARGS+=("$arg") ;;
+    --help)  usage; exit 0 ;;
+    -v)      VERBOSE=true ;;
+    --quick) DEPTH="quick" ;;
+    --deep)  DEPTH="deep" ;;
+    *)       ARGS+=("$arg") ;;
   esac
 done
 
 if [[ ${#ARGS[@]} -eq 0 ]]; then
   usage; exit 1
 fi
+
+case "$DEPTH" in
+  quick)  DEPTH_PROMPT="这是一个简单问题，完成至少3轮搜索后即可写结论。" ;;
+  deep)   DEPTH_PROMPT="用户要求深度研究，必须完成至少10轮搜索，充分覆盖多个平台和角度后再写结论。" ;;
+  *)      DEPTH_PROMPT="完成至少5轮搜索后再写结论。" ;;
+esac
 
 SKILL_DIR="$HOME/.agents/skills/chrome-cdp"
 AGENT_FILE="$HOME/.pi/agent/agents/web-researcher.md"
@@ -45,6 +59,7 @@ if [[ "$VERBOSE" == true ]]; then
      --tools bash,read \
      --model "$MODEL" \
      --system-prompt "$PROMPT" \
+     --append-system-prompt "$DEPTH_PROMPT" \
      "${ARGS[@]}" | pi-watch
 else
   pi --no-session --print \
@@ -52,5 +67,6 @@ else
      --tools bash,read \
      --model "$MODEL" \
      --system-prompt "$PROMPT" \
+     --append-system-prompt "$DEPTH_PROMPT" \
      "${ARGS[@]}"
 fi
